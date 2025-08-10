@@ -1,0 +1,55 @@
+{
+  "name": "react-p2p",
+  "version": "1.0.0",
+  "description": "React P2P is a state-management library for React that allows you to manage the state of your application in a decentralised way.",
+  "keywords": [
+    "react",
+    "p2p",
+    "webrtc",
+    "peer-to-peer"
+  ],
+  "license": "MIT",
+  "author": "Peter Dodd",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/react-p2p.git"
+  },
+  "homepage": "https://github.com/your-username/react-p2p#readme",
+  "bugs": {
+    "url": "https://github.com/your-username/react-p2p/issues"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "packageManager": "bun@1.1.25",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --sourcemap --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --sourcemap --watch",
+    "test": "echo \"No tests specified\"",
+    "prepublishOnly": "bun run build"
+  },
+  "sideEffects": false,
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.9",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2"
+  }
+}
