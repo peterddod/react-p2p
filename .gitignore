@@ -1,38 +1,36 @@
 # Dependencies
-node_modules/
+**/node_modules/
 
 # Build outputs
-dist/
-*.tsbuildinfo
+**/dist/
+**/*.tsbuildinfo
 
 # Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-bun-debug.log*
-*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+**/lerna-debug.log*
+**/bun-debug.log*
+**/*.log
 
 # Environment files
-.env
-.env.*
-!.env.example
+**/.env
+**/.env.*
+!**/.env.example
 
 # Coverage
-coverage/
-.nyc_output/
+**/coverage/
+**/.nyc_output/
 
 # Editor/OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
+**/.vscode/
+**/.idea/
+**/.DS_Store
+**/Thumbs.db
 
 # Package manager lockfiles (recommended to ignore for libraries)
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-bun.lockb
-
-
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+**/bun.lockb
