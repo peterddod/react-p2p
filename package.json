@@ -10,11 +10,14 @@
   ],
   "packageManager": "bun@1.1.25",
   "scripts": {
-    "dev": "bun run --parallel dev --filter='./packages/*'",
+    "dev": "bun run --parallel dev --filter='./packages/{signalling-server,example}'",
+    "dev:server": "bun run dev --filter=signalling-server",
+    "dev:example": "bun run dev --filter=example",
     "build": "bun run build --filter='./packages/*'",
     "build:lib": "bun run build --filter=react-p2p",
     "build:server": "bun run build --filter=signalling-server",
     "build:example": "bun run build --filter=example",
+    "start:server": "bun run start --filter=signalling-server",
     "test": "echo \"No tests specified\""
   }
 }

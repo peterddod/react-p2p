@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "react-p2p": resolve(__dirname, "../src")
+      "react-p2p": resolve(__dirname, "../react-p2p/src")
     },
     dedupe: ["react"]
   },
