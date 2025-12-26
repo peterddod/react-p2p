@@ -36,4 +36,3 @@ export function useStore<TState>(store: Store<TState>): TState {
   return useSyncExternalStore(store.subscribe, store.getState, store.getState);
 }
 
-
