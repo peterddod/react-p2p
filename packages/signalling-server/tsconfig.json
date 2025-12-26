@@ -4,8 +4,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "lib": ["ES2020"],
-    "types": ["node"],
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "declaration": true
   },
   "include": ["src"]

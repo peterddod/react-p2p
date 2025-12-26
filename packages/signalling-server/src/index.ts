@@ -1,107 +1,101 @@
-import WebSocket from "ws";
-import { createServer } from "http";
+// server.ts
+import { WebSocketServer, WebSocket } from 'ws';
 
-const PORT = process.env.PORT || 8080;
-const server = createServer();
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocketServer({ port: 8080 });
 
-interface Peer {
-  id: string;
-  ws: WebSocket;
-  room?: string;
-}
+type Room = Map<string, WebSocket>;
+const rooms = new Map<string, Room>();
 
-const peers = new Map<string, Peer>();
-
-wss.on("connection", (ws) => {
-  const peerId = Math.random().toString(36).substring(2, 15);
-  const peer: Peer = { id: peerId, ws };
-  peers.set(peerId, peer);
-
-  console.log(`Peer connected: ${peerId}`);
-
-  ws.on("message", (data) => {
-    try {
-      const message = JSON.parse(data.toString());
-      handleMessage(peer, message);
-    } catch (error) {
-      console.error("Failed to parse message:", error);
+wss.on('connection', (ws: WebSocket) => {
+  let currentRoom: string | null = null;
+  let peerId: string | null = null;
+  
+  ws.on('message', (data: Buffer) => {
+    const msg = JSON.parse(data.toString()) as {
+      type: string;
+      roomId?: string;
+      peerId?: string;
+      to?: string;
+      from?: string;
+      signal?: unknown;
+    };
+    
+    switch (msg.type) {
+      case 'join':
+        if (!msg.roomId || !msg.peerId) return;
+        
+        currentRoom = msg.roomId;
+        peerId = msg.peerId;
+        
+        if (!rooms.has(currentRoom)) {
+          rooms.set(currentRoom, new Map());
+        }
+        
+        const room = rooms.get(currentRoom)!;
+        
+        // Tell new peer about existing peers
+        const existingPeers = Array.from(room.keys());
+        ws.send(JSON.stringify({
+          type: 'peers',
+          peers: existingPeers
+        }));
+        
+        // Tell existing peers about new peer
+        room.forEach((peerWs) => {
+          peerWs.send(JSON.stringify({
+            type: 'peer-joined',
+            peerId
+          }));
+        });
+        
+        room.set(peerId, ws);
+        console.log(`Peer ${peerId} joined room ${currentRoom} (${room.size} peers total)`);
+        break;
+        
+      case 'signal':
+        // Relay WebRTC signaling to specific peer
+        if (!currentRoom || !msg.to) return;
+        
+        const targetPeer = rooms.get(currentRoom)?.get(msg.to);
+        if (targetPeer) {
+          targetPeer.send(JSON.stringify({
+            type: 'signal',
+            from: msg.from,
+            signal: msg.signal
+          }));
+        }
+        break;
     }
   });
-
-  ws.on("close", () => {
-    console.log(`Peer disconnected: ${peerId}`);
-    peers.delete(peerId);
-    broadcastToRoom(peer.room, {
-      type: "peer-left",
-      peerId,
-    });
+  
+  ws.on('close', () => {
+    if (currentRoom && peerId) {
+      const room = rooms.get(currentRoom);
+      if (room) {
+        room.delete(peerId);
+        
+        // Notify others
+        room.forEach((peerWs) => {
+          peerWs.send(JSON.stringify({
+            type: 'peer-left',
+            peerId
+          }));
+        });
+        
+        console.log(`Peer ${peerId} left room ${currentRoom} (${room.size} peers remaining)`);
+        
+        // Clean up empty rooms
+        if (room.size === 0) {
+          rooms.delete(currentRoom);
+          console.log(`Room ${currentRoom} deleted (empty)`);
+        }
+      }
+    }
   });
-
-  ws.on("error", (error) => {
-    console.error(`WebSocket error for ${peerId}:`, error);
+  
+  ws.on('error', (err: Error) => {
+    console.error('WebSocket error:', err);
   });
 });
 
-function handleMessage(sender: Peer, message: any) {
-  const { type, roomId, targetPeerId, data } = message;
-
-  switch (type) {
-    case "join-room":
-      sender.room = roomId;
-      broadcastToRoom(roomId, {
-        type: "peer-joined",
-        peerId: sender.id,
-      });
-      sendPeersList(sender, roomId);
-      break;
-
-    case "offer":
-    case "answer":
-    case "ice-candidate":
-      forwardToTarget(targetPeerId, {
-        type,
-        from: sender.id,
-        data,
-      });
-      break;
-
-    default:
-      console.warn(`Unknown message type: ${type}`);
-  }
-}
-
-function broadcastToRoom(room: string | undefined, message: any) {
-  if (!room) return;
-  const payload = JSON.stringify(message);
-  peers.forEach((peer) => {
-    if (peer.room === room && peer.ws.readyState === WebSocket.OPEN) {
-      peer.ws.send(payload);
-    }
-  });
-}
-
-function sendPeersList(peer: Peer, room: string) {
-  const roomPeers = Array.from(peers.values())
-    .filter((p) => p.room === room && p.id !== peer.id)
-    .map((p) => p.id);
-
-  peer.ws.send(
-    JSON.stringify({
-      type: "peers-list",
-      peerIds: roomPeers,
-    })
-  );
-}
-
-function forwardToTarget(targetPeerId: string | undefined, message: any) {
-  const target = peers.get(targetPeerId || "");
-  if (target && target.ws.readyState === WebSocket.OPEN) {
-    target.ws.send(JSON.stringify(message));
-  }
-}
-
-server.listen(PORT, () => {
-  console.log(`Signalling server running on port ${PORT}`);
-});
-
+console.log('🚀 Signaling server running on ws://localhost:8080');
