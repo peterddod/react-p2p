@@ -1,117 +1,104 @@
-# React P2P - Monorepo
+# React P2P
 
-A comprehensive peer-to-peer state management solution for React applications. This monorepo contains the library, signalling server, and example implementation.
+> ⚠️ **Early Development** - Core P2P features are under active development
 
-## 📦 Packages
+A peer-to-peer state management library for React applications.
 
-### [`packages/react-p2p`](./packages/react-p2p)
-The core P2P state management library for React. Provides hooks and utilities for managing synchronized state across peers.
+## Overview
 
-**Features:**
-- `createStore` - Create a reactive state store
-- `useStore` - Hook to consume store state
-- P2P state synchronization
-- WebRTC integration (planned)
+React P2P is a monorepo containing:
+- A React state management library designed for peer-to-peer synchronization
+- A WebSocket signaling server for coordinating WebRTC connections
+- Example applications demonstrating usage
 
-**Installation:**
+Currently implements local state management with P2P synchronization in development.
+
+## Quick Start
+
+### Prerequisites
+- [Bun](https://bun.sh) 1.1.25 or later
+
+### Installation
 ```bash
-npm install react-p2p
-```
-
-### [`packages/signalling-server`](./packages/signalling-server)
-A WebSocket-based signalling server that coordinates WebRTC peer connections.
-
-**Features:**
-- Room-based peer organization
-- WebRTC offer/answer signalling
-- ICE candidate exchange
-- Automatic peer discovery
-
-**Running:**
-```bash
-cd packages/signalling-server
-bun run dev
-# or
-PORT=3000 bun run start
-```
-
-### [`packages/example`](./packages/example)
-A demo application showing react-p2p in action with two iframes sharing synchronized counter state.
-
-**Running:**
-```bash
-bun run dev
-```
-
-## 🚀 Quick Start
-
-### Install Dependencies
-```bash
+git clone https://github.com/peterddod/react-p2p.git
+cd react-p2p
 bun install
 ```
 
-### Development Mode
-Run all packages in development mode:
+### Run Development
 ```bash
 bun run dev
 ```
 
-This will start:
-- Example app on `http://localhost:5173`
-- Signalling server on `http://localhost:8080`
+This starts:
+- Example app: http://localhost:5173
+- Signaling server: ws://localhost:8080
 
-### Build All Packages
-```bash
-bun run build
-```
-
-Or build individual packages:
-```bash
-bun run build:lib      # Build react-p2p library
-bun run build:server   # Build signalling server
-bun run build:example  # Build example app
-```
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 react-p2p/
 ├── packages/
-│   ├── react-p2p/           # npm package (library)
-│   │   ├── src/
-│   │   ├── dist/            # Build output
-│   │   └── package.json
-│   ├── signalling-server/   # WebSocket signalling server
-│   │   ├── src/
-│   │   ├── dist/
-│   │   └── package.json
-│   └── example/             # Demo app with iframes
-│       ├── src/
-│       ├── dist/
-│       └── package.json
-├── package.json             # Workspace root
-├── tsconfig.json            # Shared TypeScript config
-└── README.md
+│   ├── react-p2p/           # Core library
+│   ├── signalling-server/   # WebSocket signaling server
+│   └── example/             # Demo application
+├── biome.json               # Linting & formatting config
+├── tsconfig.base.json       # Shared TypeScript config
+└── package.json             # Workspace root
 ```
 
-## 🛠 Technology Stack
+## Scripts
 
-- **React** 19.x
-- **TypeScript** 5.x
-- **WebRTC** for peer connections
-- **WebSocket** for signalling
-- **Vite** for bundling examples
-- **tsup** for library bundling
-- **Bun** as package manager
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Run example + server in parallel |
+| `bun run dev:server` | Run signaling server only |
+| `bun run dev:example` | Run example app only |
+| `bun run build` | Build all packages |
+| `bun run build:lib` | Build library only |
+| `bun run build:server` | Build server only |
+| `bun run build:example` | Build example only |
+| `bun run check` | Lint & format all code |
+| `bun run lint` | Check for linting issues |
 
-## 📝 License
+## Contributing
 
-MIT
+### Development Setup
 
-## 👤 Author
+1. Fork and clone the repository
+2. Install dependencies: `bun install`
+3. Create a branch: `git checkout -b feature/my-feature`
+4. Make your changes
+5. Run linting: `bun run check`
+6. Commit with [conventional commits](https://www.conventionalcommits.org/):
+   - `feat:` - New features
+   - `fix:` - Bug fixes
+   - `chore:` - Tooling/maintenance
+   - `docs:` - Documentation
+7. Push and open a PR
 
-Peter Dodd
+### Code Quality
 
-## 🔗 Repository
+This project uses [Biome](https://biomejs.dev) for linting and formatting.
 
-https://github.com/peterddod/react-p2p
+- Format on save is configured in `.vscode/settings.json`
+- Run `bun run check` before committing
+- Install the recommended Biome extension for VS Code
+
+### TypeScript
+
+Shared configuration in `tsconfig.base.json`. Each package extends this with specific needs.
+
+## Technology Stack
+
+- **[Bun](https://bun.sh)** - Package manager & runtime
+- **[TypeScript](https://www.typescriptlang.org/)** - Type safety
+- **[React](https://react.dev/)** 19.x - UI library
+- **[Biome](https://biomejs.dev/)** - Linting & formatting
+- **[Vite](https://vite.dev/)** - Example app bundler
+- **[tsup](https://tsup.egoist.dev/)** - Library bundler
+- **[WebSocket](https://github.com/websockets/ws)** - Signaling server
+
+## License
+
+MIT © [Peter Dodd](https://github.com/peterddod)
