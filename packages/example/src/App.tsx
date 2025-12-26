@@ -1,20 +1,20 @@
-import { useState } from 'react'
-import './App.css'
+import { useState } from 'react';
+import './App.css';
 
 // Counter component that can be embedded in an iframe
 export function Counter() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   return (
     <div className="counter-container">
       <h2>Counter</h2>
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
+        <button type="button" onClick={() => setCount((count) => count + 1)}>
           Count: {count}
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 // Main app that displays two iframes
@@ -29,20 +29,12 @@ function App() {
       <div className="iframes-container">
         <div className="iframe-wrapper">
           <h3>Peer 1</h3>
-          <iframe
-            src="/iframe.html?peerId=1"
-            title="Peer 1"
-            className="peer-iframe"
-          />
+          <iframe src="/iframe.html?peerId=1" title="Peer 1" className="peer-iframe" />
         </div>
 
         <div className="iframe-wrapper">
           <h3>Peer 2</h3>
-          <iframe
-            src="/iframe.html?peerId=2"
-            title="Peer 2"
-            className="peer-iframe"
-          />
+          <iframe src="/iframe.html?peerId=2" title="Peer 2" className="peer-iframe" />
         </div>
       </div>
 
@@ -55,7 +47,7 @@ function App() {
         </ul>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -18,6 +18,14 @@
     "build:server": "bun run build --filter=signalling-server",
     "build:example": "bun run build --filter=example",
     "start:server": "bun run start --filter=signalling-server",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check --write .",
     "test": "echo \"No tests specified\""
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.10"
   }
 }

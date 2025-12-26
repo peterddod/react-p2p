@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore } from 'react';
 
 export type Listener<TState> = (state: TState) => void;
 
@@ -18,9 +18,7 @@ export function createStore<TState>(initialState: TState): Store<TState> {
 
   function setState(next: TState | ((prev: TState) => TState)): void {
     currentState =
-      typeof next === "function"
-        ? (next as (prev: TState) => TState)(currentState)
-        : next;
+      typeof next === 'function' ? (next as (prev: TState) => TState)(currentState) : next;
     for (const notify of listeners) notify(currentState);
   }
 
@@ -35,4 +33,3 @@ export function createStore<TState>(initialState: TState): Store<TState> {
 export function useStore<TState>(store: Store<TState>): TState {
   return useSyncExternalStore(store.subscribe, store.getState, store.getState);
 }
-
