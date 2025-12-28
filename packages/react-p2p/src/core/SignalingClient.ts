@@ -1,11 +1,13 @@
+import type { SignalData } from './PeerConnection';
+
 type SignalingEventHandler = (event: SignalingEvent) => void;
 
 interface SignalingEvent {
-  type: 'joined' | 'peer-list' | 'peer-joined' | 'peer-left' | 'signal';
+  type: 'joined' | 'peer-list' | 'peer-joined' | 'peer-left' | 'signal' | 'disconnected';
   peerId?: string;
   peers?: string[];
   from?: string;
-  data?: Record<string, unknown>;
+  data?: SignalData;
 }
 
 class SignalingClient {
