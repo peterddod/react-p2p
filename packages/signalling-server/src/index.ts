@@ -1,111 +1,146 @@
 // server.ts
-import { type WebSocket, WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
+
+interface Client {
+  id: string;
+  ws: WebSocket;
+  roomId: string;
+}
 
 const wss = new WebSocketServer({ port: 8080 });
 
-type Room = Map<string, WebSocket>;
-const rooms = new Map<string, Room>();
+// Track all connected clients
+const clients = new Map<string, Client>();
+
+// Track rooms and their members
+const rooms = new Map<string, Set<string>>();
+
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 15);
+}
+
+function broadcast(roomId: string, message: Record<string, unknown>, excludeId?: string) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+
+  room.forEach((clientId) => {
+    if (clientId === excludeId) return;
+
+    const client = clients.get(clientId);
+    if (client && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify(message));
+    }
+  });
+}
+
+function getRoomPeers(roomId: string): string[] {
+  const room = rooms.get(roomId);
+  return room ? Array.from(room) : [];
+}
 
 wss.on('connection', (ws: WebSocket) => {
-  let currentRoom: string | null = null;
-  let peerId: string | null = null;
+  let clientId: string | null = null;
+  let currentRoomId: string | null = null;
 
-  ws.on('message', (data: Buffer) => {
-    const msg = JSON.parse(data.toString()) as {
-      type: string;
-      roomId?: string;
-      peerId?: string;
-      to?: string;
-      from?: string;
-      signal?: unknown;
-    };
+  ws.on('message', (data: string) => {
+    const message = JSON.parse(data.toString());
 
-    switch (msg.type) {
-      case 'join': {
-        if (!msg.roomId || !msg.peerId) return;
+    switch (message.type) {
+      case 'join':
+        // Generate unique peer ID
+        clientId = generateId();
+        currentRoomId = message.roomId;
 
-        currentRoom = msg.roomId;
-        peerId = msg.peerId;
-
-        let room = rooms.get(currentRoom);
-        if (!room) {
-          room = new Map();
-          rooms.set(currentRoom, room);
+        if (!clientId || !currentRoomId) {
+          return;
         }
 
-        // Tell new peer about existing peers
-        const existingPeers = Array.from(room.keys());
+        // Store client
+        clients.set(clientId, {
+          id: clientId,
+          ws: ws,
+          roomId: currentRoomId,
+        });
+
+        // Add to room
+        if (!rooms.has(currentRoomId)) {
+          rooms.set(currentRoomId, new Set());
+        }
+        rooms.get(currentRoomId)?.add(clientId);
+
+        // Send peer ID and current peer list to joiner
         ws.send(
           JSON.stringify({
-            type: 'peers',
-            peers: existingPeers,
+            type: 'joined',
+            peerId: clientId,
+            peers: getRoomPeers(currentRoomId),
           })
         );
 
-        // Tell existing peers about new peer
-        room.forEach((peerWs) => {
-          peerWs.send(
-            JSON.stringify({
-              type: 'peer-joined',
-              peerId,
-            })
-          );
-        });
+        // Notify others in room
+        broadcast(
+          currentRoomId,
+          {
+            type: 'peer-joined',
+            peerId: clientId,
+            peers: getRoomPeers(currentRoomId),
+          },
+          clientId
+        );
 
-        room.set(peerId, ws);
-        console.log(`Peer ${peerId} joined room ${currentRoom} (${room.size} peers total)`);
+        console.log(`Client ${clientId} joined room ${currentRoomId}`);
         break;
-      }
 
       case 'signal': {
-        // Relay WebRTC signaling to specific peer
-        if (!currentRoom || !msg.to) return;
-
-        const targetPeer = rooms.get(currentRoom)?.get(msg.to);
-        if (targetPeer) {
-          targetPeer.send(
+        // Forward WebRTC signaling messages between peers
+        const targetClient = clients.get(message.to);
+        if (targetClient && targetClient.ws.readyState === WebSocket.OPEN) {
+          targetClient.ws.send(
             JSON.stringify({
               type: 'signal',
-              from: msg.from,
-              signal: msg.signal,
+              from: clientId,
+              data: message.data,
             })
           );
         }
         break;
       }
+
+      default:
+        console.log('Unknown message type:', message.type);
     }
   });
 
   ws.on('close', () => {
-    if (currentRoom && peerId) {
-      const room = rooms.get(currentRoom);
+    if (clientId && currentRoomId) {
+      // Remove from room
+      const room = rooms.get(currentRoomId);
       if (room) {
-        room.delete(peerId);
+        room.delete(clientId);
 
         // Notify others
-        room.forEach((peerWs) => {
-          peerWs.send(
-            JSON.stringify({
-              type: 'peer-left',
-              peerId,
-            })
-          );
+        broadcast(currentRoomId, {
+          type: 'peer-left',
+          peerId: clientId,
+          peers: getRoomPeers(currentRoomId),
         });
 
-        console.log(`Peer ${peerId} left room ${currentRoom} (${room.size} peers remaining)`);
-
-        // Clean up empty rooms
+        // Clean up empty room
         if (room.size === 0) {
-          rooms.delete(currentRoom);
-          console.log(`Room ${currentRoom} deleted (empty)`);
+          rooms.delete(currentRoomId);
         }
       }
+
+      // Remove client
+      clients.delete(clientId);
+
+      console.log(`Client ${clientId} left room ${currentRoomId}`);
     }
   });
 
-  ws.on('error', (err: Error) => {
-    console.error('WebSocket error:', err);
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
   });
 });
 
-console.log('🚀 Signaling server running on ws://localhost:8080');
+console.log('Signaling server running on ws://localhost:8080');
