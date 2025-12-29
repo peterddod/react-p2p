@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "farm start",
+    "build": "tsc -b && farm build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "farm preview"
   },
   "dependencies": {
     "react": "^19.1.1",
@@ -15,11 +15,12 @@
     "react-p2p": "workspace:*"
   },
   "devDependencies": {
+    "@farmfe/cli": "^1.0.0",
+    "@farmfe/core": "^1.0.0",
+    "@farmfe/plugin-react": "^1.0.0",
     "@types/node": "^24.2.1",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
-    "@vitejs/plugin-react": "^4.7.0",
-    "typescript": "~5.8.3",
-    "vite": "^7.1.0"
+    "typescript": "~5.8.3"
   }
 }

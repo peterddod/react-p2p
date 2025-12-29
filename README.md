@@ -26,12 +26,19 @@ bun install
 ```
 
 ### Run Development
+
+Start the signaling server:
 ```bash
-bun run dev
+bun run start:server
 ```
 
-This starts:
-- Example app: http://localhost:5173
+In a separate terminal, run the example app:
+```bash
+bun run dev:example
+```
+
+This provides:
+- Example app: http://localhost:9000
 - Signaling server: ws://localhost:8080
 
 ## Project Structure
@@ -52,7 +59,8 @@ react-p2p/
 | Command | Description |
 |---------|-------------|
 | `bun run dev` | Run example + server in parallel |
-| `bun run dev:server` | Run signaling server only |
+| `bun run start:server` | Start the signaling server |
+| `bun run dev:server` | Build signaling server in watch mode |
 | `bun run dev:example` | Run example app only |
 | `bun run build` | Build all packages |
 | `bun run build:lib` | Build library only |

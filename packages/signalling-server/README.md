@@ -12,10 +12,16 @@ A WebSocket-based signaling server for coordinating WebRTC peer-to-peer connecti
 
 ## Development
 
-Start the server in watch mode (rebuilds on changes):
+Build the server in watch mode (rebuilds on changes):
 
 ```bash
 bun run dev
+```
+
+To actually run the server after building:
+
+```bash
+bun run start
 ```
 
 Server will be available at `ws://localhost:8080`
