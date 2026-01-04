@@ -44,6 +44,10 @@
   "peerDependencies": {
     "react": ">=18"
   },
+  "dependencies": {
+    "jsondiffpatch": "^0.6.0",
+    "hash-it": "^7.0.2"
+  },
   "devDependencies": {
     "@types/react": "^19.1.9",
     "tsup": "^8.5.0",

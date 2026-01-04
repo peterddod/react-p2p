@@ -7,7 +7,7 @@ interface Client {
   roomId: string;
 }
 
-const wss = new WebSocketServer({ port: 8080 });
+const wss = new WebSocketServer({ port: 8080, host: '0.0.0.0' });
 
 // Track all connected clients
 const clients = new Map<string, Client>();
@@ -143,4 +143,4 @@ wss.on('connection', (ws: WebSocket) => {
   });
 });
 
-console.log('Signaling server running on ws://localhost:8080');
+console.log('Signaling server running on ws://0.0.0.0:8080 (accessible from all network interfaces)');

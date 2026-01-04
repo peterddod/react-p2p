@@ -1,50 +1,40 @@
-import { useEffect, useState } from 'react';
-import { Room, useRoom } from 'react-p2p';
+import { useState } from 'react';
+import { Room, useRoom, useSharedState } from 'react-p2p';
 import './Peer.css';
+
+interface ChatMessage {
+  from: string;
+  text: string;
+  timestamp: number;
+}
+
+interface MessagesState {
+  messages: ChatMessage[];
+}
 
 // Component that uses the P2P connection
 function PeerContent({ peerName }: { peerName: string }) {
-  const { peerId, peers, isConnected, broadcast, onMessage } = useRoom();
+  const { peerId, peers, isConnected } = useRoom();
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<
-    Array<{ from: string; text: string; timestamp: number }>
-  >([]);
-
-  useEffect(() => {
-    // Listen for incoming messages
-    onMessage((fromPeerId: string, data: Record<string, unknown>) => {
-      if (data.type === 'chat' && typeof data.text === 'string') {
-        const messageText = data.text as string;
-        setMessages((prev) => [
-          ...prev,
-          {
-            from: fromPeerId,
-            text: messageText,
-            timestamp: Date.now(),
-          },
-        ]);
-      }
-    });
-  }, [onMessage]);
+  
+  // Use shared state for messages - automatically synced across all peers
+  const [messagesState, setMessagesState] = useSharedState<MessagesState>('chat-messages', {
+    messages: [],
+  });
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
 
-    // Broadcast message to all peers
-    broadcast({
-      type: 'chat',
+    // Add message to shared state - will automatically sync to all peers
+    const newMessage: ChatMessage = {
+      from: peerId,
       text: message,
-    });
+      timestamp: Date.now(),
+    };
 
-    // Add to own message list
-    setMessages((prev) => [
-      ...prev,
-      {
-        from: 'me',
-        text: message,
-        timestamp: Date.now(),
-      },
-    ]);
+    setMessagesState((prev) => ({
+      messages: [...prev.messages, newMessage],
+    }));
 
     setMessage('');
   };
@@ -82,18 +72,18 @@ function PeerContent({ peerName }: { peerName: string }) {
       </div>
 
       <div className="messages-container">
-        <div className="messages-header">Messages</div>
+        <div className="messages-header">Messages (Synced via useSharedState)</div>
         <div className="messages-list">
-          {messages.length === 0 ? (
+          {messagesState.messages.length === 0 ? (
             <div className="no-messages">No messages yet. Send one to get started!</div>
           ) : (
-            messages.map((msg, index) => (
+            messagesState.messages.map((msg, index) => (
               <div
                 key={`${msg.timestamp}-${index}`}
-                className={`message ${msg.from === 'me' ? 'message-sent' : 'message-received'}`}
+                className={`message ${msg.from === peerId ? 'message-sent' : 'message-received'}`}
               >
                 <div className="message-sender">
-                  {msg.from === 'me' ? 'You' : `Peer ${msg.from.slice(0, 8)}`}
+                  {msg.from === peerId ? 'You' : `Peer ${msg.from.slice(0, 8)}`}
                 </div>
                 <div className="message-text">{msg.text}</div>
                 <div className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
@@ -132,8 +122,10 @@ export default function PeerComponent() {
   const params = new URLSearchParams(window.location.search);
   const peerName = params.get('peer') || 'Unknown';
 
-  // Use localhost:8080 for the signaling server (adjust as needed)
-  const signallingServerUrl = 'ws://localhost:8080';
+  // Use the same hostname as the page was loaded from
+  // This allows it to work on localhost and on network IP addresses
+  const hostname = window.location.hostname;
+  const signallingServerUrl = `ws://${hostname}:8080`;
   const roomId = 'demo-room';
 
   return (

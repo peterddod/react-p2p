@@ -6,10 +6,10 @@ export interface RoomContextValue {
   roomId: string;
   peerId: string;
   peers: string[];
-  isConnected: boolean;
-  broadcast: (message: Record<string, unknown>) => void;
-  sendToPeer: (peerId: string, message: Record<string, unknown>) => void;
-  onMessage: (handler: (peerId: string, message: Record<string, unknown>) => void) => void;
+  isConnected: boolean; 
+  broadcast: (message: object) => void;
+  sendToPeer: (peerId: string, message: object) => void;
+  onMessage: (handler: (peerId: string, message: any) => void) => () => void;
 }
 
 export const RoomContext = createContext<RoomContextValue | null>(null);
@@ -26,9 +26,7 @@ export function Room({ children, signallingServerUrl, roomId }: RoomProps) {
 
   const signalingClientRef = useRef<SignalingClient | null>(null);
   const connectionsRef = useRef<Map<string, PeerConnection>>(new Map());
-  const messageHandlerRef = useRef<
-    ((peerId: string, message: Record<string, unknown>) => void) | null
-  >(null);
+  const messageHandlersRef = useRef<Set<(peerId: string, message: any) => void>>(new Set());
 
   useEffect(
     function initializeSignalingClient() {
@@ -117,7 +115,9 @@ export function Room({ children, signallingServerUrl, roomId }: RoomProps) {
           remotePeerId,
           signalingClient,
           (fromPeerId, message) => {
-            messageHandlerRef.current?.(fromPeerId, message);
+            messageHandlersRef.current.forEach((handler) => {
+              handler(fromPeerId, message);
+            });
           }
         );
 
@@ -134,19 +134,24 @@ export function Room({ children, signallingServerUrl, roomId }: RoomProps) {
     [peers, peerId]
   );
 
-  const broadcast = (message: Record<string, unknown>) => {
+  const broadcast = (message: object) => {
     connectionsRef.current.forEach((connection) => {
       connection.send(message);
     });
   };
 
-  const sendToPeer = (targetPeerId: string, message: Record<string, unknown>) => {
+  const sendToPeer = (targetPeerId: string, message: object) => {
     const connection = connectionsRef.current.get(targetPeerId);
     connection?.send(message);
   };
 
-  const onMessage = (handler: (peerId: string, message: Record<string, unknown>) => void) => {
-    messageHandlerRef.current = handler;
+  const onMessage = (handler: (peerId: string, message: any) => void) => {
+    messageHandlersRef.current.add(handler);
+    
+    // Return unsubscribe function
+    return () => {
+      messageHandlersRef.current.delete(handler);
+    };
   };
 
   const contextValue: RoomContextValue = {

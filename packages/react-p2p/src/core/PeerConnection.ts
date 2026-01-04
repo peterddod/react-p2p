@@ -15,7 +15,7 @@ class PeerConnection {
     private selfPeerId: string,
     private remotePeerId: string,
     private signalingClient: SignalingClient,
-    private onMessage?: (peerId: string, message: Record<string, unknown>) => void
+    private onMessage?: (peerId: string, message: any) => void
   ) {
     this.pc = new RTCPeerConnection({
       iceServers: PeerConnection.DEFAULT_ICE_SERVERS,
@@ -116,7 +116,7 @@ class PeerConnection {
     };
   }
 
-  send(message: Record<string, unknown>) {
+  send(message: object) {
     if (this.dataChannel?.readyState === 'open') {
       this.dataChannel.send(JSON.stringify(message));
     }
