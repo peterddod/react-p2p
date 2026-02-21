@@ -1,0 +1,9 @@
+# CodeRabbit: run reviews on every PR automatically
+# https://docs.coderabbit.ai/guides/configuration-overview
+
+reviews:
+  auto_review:
+    enabled: true
+    auto_incremental_review: true  # re-run on each push
+  post_review_status: true    # show pending/success in GitHub Checks (default)
+  fail_on_review_error: false # set to true to mark check failed when review can't run
