@@ -151,11 +151,14 @@ export function useSharedState<
   const peerIdRef = useRef(peerId);
   peerIdRef.current = peerId;
 
-  const defaultStrategyRef = useRef<MergeStrategy<TState, TMeta>>(
-    createLamportStrategy(() => peerIdRef.current) as unknown as MergeStrategy<TState, TMeta>
+  const lamportStrategyRef = useRef<MergeStrategy<JSONSerializable, LamportMeta>>(
+    createLamportStrategy(() => peerIdRef.current)
   );
 
-  const effectiveStrategy = strategy ?? defaultStrategyRef.current;
+  const effectiveStrategy: MergeStrategy<TState, TMeta> =
+    strategy !== undefined
+      ? strategy
+      : (lamportStrategyRef.current as unknown as MergeStrategy<TState, TMeta>);
 
   const [rawState, setRawState] = useState<TState | null>(initialState);
   const rawStateRef = useRef<TState | null>(initialState);
