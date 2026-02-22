@@ -99,7 +99,7 @@ export function createLamportStrategy(
         incomingTiebreaker > currentTiebreaker;
 
       return clockWins || tiebreakWins
-        ? { state: incomingState, meta: incomingMeta }
+        ? { state: incomingState, meta: { ...incomingMeta, tiebreaker: incomingTiebreaker } }
         : null;
     },
   };
