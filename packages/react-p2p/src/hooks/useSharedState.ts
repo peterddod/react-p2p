@@ -120,6 +120,7 @@ export function useSharedState<
 
   useEffect(() => {
     strategyRef.current = strategy;
+    rawStateMetaRef.current = strategy.initialMeta;
   }, [strategy]);
 
   useEffect(
