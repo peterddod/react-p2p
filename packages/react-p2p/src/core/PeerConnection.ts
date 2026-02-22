@@ -5,22 +5,36 @@ export type SignalData =
   | { type: 'answer'; sdp: RTCSessionDescriptionInit }
   | { type: 'ice-candidate'; candidate: RTCIceCandidateInit };
 
+export interface PeerConnectionOptions {
+  localPeerId: string;
+  remotePeerId: string;
+  signalingClient: SignalingClient;
+  rtcConfig?: RTCConfiguration;
+  onChannelMessage?: (peerId: string, message: Record<string, unknown>) => void;
+  onChannelOpen?: (remotePeerId: string) => void;
+}
+
 class PeerConnection {
   private static readonly DEFAULT_ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
 
   private pc: RTCPeerConnection;
   private dataChannel: RTCDataChannel | null = null;
+  private selfPeerId: string;
+  private remotePeerId: string;
+  private signalingClient: SignalingClient;
+  private onChannelMessage?: (peerId: string, message: Record<string, unknown>) => void;
+  private onChannelOpen?: (remotePeerId: string) => void;
 
-  constructor(
-    private selfPeerId: string,
-    private remotePeerId: string,
-    private signalingClient: SignalingClient,
-    private onMessage?: (peerId: string, message: Record<string, unknown>) => void,
-    private onChannelOpen?: (remotePeerId: string) => void
-  ) {
-    this.pc = new RTCPeerConnection({
-      iceServers: PeerConnection.DEFAULT_ICE_SERVERS,
-    });
+  constructor(opts: PeerConnectionOptions) {
+    this.selfPeerId = opts.localPeerId;
+    this.remotePeerId = opts.remotePeerId;
+    this.signalingClient = opts.signalingClient;
+    this.onChannelMessage = opts.onChannelMessage;
+    this.onChannelOpen = opts.onChannelOpen;
+
+    this.pc = new RTCPeerConnection(
+      opts.rtcConfig ?? { iceServers: PeerConnection.DEFAULT_ICE_SERVERS }
+    );
 
     this.setupConnection();
 
@@ -114,7 +128,7 @@ class PeerConnection {
 
     channel.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      this.onMessage?.(this.remotePeerId, message);
+      this.onChannelMessage?.(this.remotePeerId, message);
     };
   }
 
