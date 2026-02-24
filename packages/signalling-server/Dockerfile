@@ -11,12 +11,15 @@ RUN npm install
 RUN npx tsup src/index.ts --format cjs --clean
 
 FROM node:20-alpine
+RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 
 COPY --from=builder /app/packages/signalling-server/package.json .
 COPY --from=builder /app/packages/signalling-server/dist ./dist
 
-RUN npm install --omit=dev
+RUN npm install --omit=dev && chown -R app:app /app
+
+USER app
 
 EXPOSE 8080
 CMD ["node", "dist/index.js"]

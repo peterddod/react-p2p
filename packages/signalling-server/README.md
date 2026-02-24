@@ -5,19 +5,19 @@ A lightweight WebSocket signaling server that coordinates the initial WebRTC han
 ## Self-hosting with Docker
 
 ```bash
-docker run -p 8080:8080 ghcr.io/peterddod/react-p2p/signalling-server:latest
+docker run -p 8080:8080 ghcr.io/peterddod/phop/signalling-server:latest
 ```
 
 Pin to a specific version to match your phop client version:
 
 ```bash
-docker run -p 8080:8080 ghcr.io/peterddod/react-p2p/signalling-server:1.0.0
+docker run -p 8080:8080 ghcr.io/peterddod/phop/signalling-server:1.0.0
 ```
 
 Set a custom port:
 
 ```bash
-docker run -e PORT=3000 -p 3000:3000 ghcr.io/peterddod/react-p2p/signalling-server:latest
+docker run -e PORT=3000 -p 3000:3000 ghcr.io/peterddod/phop/signalling-server:latest
 ```
 
 ## Running from source

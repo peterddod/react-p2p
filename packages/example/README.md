@@ -17,7 +17,7 @@ Then open http://localhost:9000.
 
 ## How it works
 
-```
+```text
 App.tsx           # Main container with two peer iframes
 └── peer.html     # Peer iframe entry point
     └── Peer.tsx  # Connects to room, renders shared state UI

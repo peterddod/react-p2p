@@ -74,7 +74,7 @@ phop requires a lightweight signaling server to coordinate the initial WebRTC ha
 A production-ready server is available as a Docker image:
 
 ```bash
-docker run -p 8080:8080 ghcr.io/peterddod/react-p2p/signalling-server:latest
+docker run -p 8080:8080 ghcr.io/peterddod/phop/signalling-server:latest
 ```
 
 Source and self-hosting instructions: [`packages/signalling-server`](../signalling-server)
