@@ -7,10 +7,7 @@ if (!version) {
   process.exit(1);
 }
 
-const paths = [
-  'packages/phop/package.json',
-  'packages/signalling-server/package.json',
-];
+const paths = ['packages/phop/package.json', 'packages/signalling-server/package.json'];
 
 for (const path of paths) {
   const pkg = JSON.parse(readFileSync(path, 'utf8'));
