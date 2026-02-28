@@ -12,8 +12,8 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "node scripts/bump-version.mjs ${nextRelease.version}",
-        "publishCmd": "cd packages/phop && npm publish --access public && cd ../.. && echo ${nextRelease.version} > .release-version",
+        "prepareCmd": "node scripts/bump-version.mjs ${nextRelease.version} && echo ${nextRelease.version} > .release-version",
+        "publishCmd": "cd packages/phop && npm publish --access public",
         "successCmd": "git add CHANGELOG.md packages/phop/package.json packages/signalling-server/package.json && git commit -m \"chore(release): ${nextRelease.version} [skip ci]\" && git push origin HEAD:main"
       }
     ],
