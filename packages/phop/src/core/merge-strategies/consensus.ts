@@ -414,12 +414,18 @@ export function createConsensusStrategy<TState extends JSONSerializable>(
     const remainingRemotes = [...round.peers].filter((p) => p !== peerId);
     if (remainingRemotes.length === 0) {
       activeRound = null;
-      // If we still have a pending write, start a new solo round so it commits.
-      if (pendingWrite !== null) {
-        const { state } = pendingWrite;
-        pendingWrite = null;
-        initiateRound(state);
-      }
+      // Recover the local proposal that was in-flight so it isn't silently
+      // dropped. pendingWrite takes priority when present because it was written
+      // after this round started and therefore represents a more recent intent.
+      const localProposal = round.proposals.get(peerId);
+      const soloState =
+        pendingWrite !== null
+          ? pendingWrite.state
+          : localProposal !== undefined
+            ? localProposal
+            : null;
+      pendingWrite = null;
+      initiateRound(soloState);
       return;
     }
 
