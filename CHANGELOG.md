@@ -1,3 +1,10 @@
+## [1.1.14](https://github.com/peterddod/phop/compare/v1.1.13...v1.1.14) (2026-03-01)
+
+
+### Bug Fixes
+
+* **ci:** use Node 22 for Trusted Publisher OIDC requirement, drop token and --provenance flag ([8e2a571](https://github.com/peterddod/phop/commit/8e2a5710c7e7c1567a27da79262c4592a9876844))
+
 ## [1.1.13](https://github.com/peterddod/phop/compare/v1.1.12...v1.1.13) (2026-03-01)
 
 
