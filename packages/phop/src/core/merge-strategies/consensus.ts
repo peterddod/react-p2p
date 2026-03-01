@@ -66,8 +66,11 @@ function isStatePush(data: unknown): data is StatePush {
 // ---------------------------------------------------------------------------
 
 function sortKeys(value: JSONSerializable | null): JSONSerializable | null {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+  if (value === null || typeof value !== 'object') {
     return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => sortKeys(item as JSONSerializable | null)) as JSONSerializable;
   }
   const sorted: Record<string, JSONSerializable> = {};
   for (const k of Object.keys(value as Record<string, JSONSerializable>).sort()) {
@@ -195,7 +198,15 @@ export function createConsensusStrategy<TState extends JSONSerializable>(
   options?: ConsensusOptions<TState>
 ): MergeStrategy<TState, ConsensusMeta> {
   const merge = mergeFn ?? defaultMerge<TState>;
-  const maxRetries = options?.maxRetries ?? Infinity;
+  const rawMaxRetries = options?.maxRetries;
+  if (rawMaxRetries !== undefined) {
+    if (!Number.isFinite(rawMaxRetries) || !Number.isInteger(rawMaxRetries) || rawMaxRetries < 0) {
+      throw new TypeError(
+        `createConsensusStrategy: options.maxRetries must be a non-negative integer, got ${rawMaxRetries}`
+      );
+    }
+  }
+  const maxRetries = rawMaxRetries ?? Infinity;
   const onMaxRetriesExceeded = options?.onMaxRetriesExceeded;
   let roundIndex = 0;
   let activeRound: Round<TState> | null = null;
