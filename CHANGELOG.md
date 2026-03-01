@@ -1,3 +1,10 @@
+## [1.1.12](https://github.com/peterddod/phop/compare/v1.1.11...v1.1.12) (2026-03-01)
+
+
+### Bug Fixes
+
+* **ci:** remove registry-url from setup-node to allow Trusted Publisher OIDC auth ([c607da6](https://github.com/peterddod/phop/commit/c607da605493dce1f93e004fec500d79312e713f))
+
 ## [1.1.11](https://github.com/peterddod/phop/compare/v1.1.10...v1.1.11) (2026-03-01)
 
 
