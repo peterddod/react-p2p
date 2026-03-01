@@ -23,6 +23,7 @@ function Counter() {
 |---------|-------------|
 | [`@peterddod/phop`](packages/phop) | React library — `npm install @peterddod/phop` |
 | [`signalling-server`](packages/signalling-server) | WebSocket server for coordinating WebRTC connections |
+| [`integration-tests`](packages/integration-tests) | Playwright integration tests — real WebRTC, multiple peers |
 | `example` | Demo app showing two peers syncing state in real time |
 
 ## Quick Start
@@ -58,6 +59,23 @@ Open http://localhost:9000 to see two peer iframes syncing a shared counter in r
 | `bun run build:server` | Build signaling server only |
 | `bun run lint` | Check for linting issues |
 | `bun run check` | Lint and format all code |
+| `bun run test:integration` | Run the Playwright integration test suite |
+
+## Testing
+
+Integration tests run real WebRTC connections between multiple browser peers. On first use, install the Playwright browser:
+
+```bash
+bunx playwright install chromium
+```
+
+Then run the suite:
+
+```bash
+bun run test:integration
+```
+
+Tests cover messaging, peer lifecycle, late-joiner state sync, and merge strategy convergence. See [`packages/integration-tests`](packages/integration-tests) for the full guide.
 
 ## Contributing
 
