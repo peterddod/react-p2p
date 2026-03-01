@@ -1,5 +1,5 @@
 import type { JSONSerializable } from '../../types';
-import type { MergeStrategy } from './types';
+import type { MergeStrategy, StrategyContext } from './types';
 
 /**
  * Metadata carried by the Last Write Wins strategy.
@@ -32,27 +32,42 @@ export function createLastWriteWinsStrategy(
   return {
     initialMeta: { timestamp: 0, tiebreaker: getPeerId() },
 
-    createMeta(): LastWriteWinsMeta {
-      return { timestamp: Date.now(), tiebreaker: getPeerId() };
-    },
+    connect(ctx: StrategyContext<JSONSerializable, LastWriteWinsMeta>): () => void {
+      // ctx.onMessage receives pre-filtered messages for this state key.
+      // data is the { state, meta } payload (key already stripped by the hook).
+      const unsubMessage = ctx.onMessage((data, senderId) => {
+        const payload = data as { state: JSONSerializable | null; meta: LastWriteWinsMeta };
+        const incomingMeta = payload.meta;
+        const currentMeta = ctx.getMeta();
 
-    merge(
-      _currentState,
-      currentMeta,
-      incomingState,
-      incomingMeta,
-      senderId
-    ): { state: JSONSerializable | null; meta: LastWriteWinsMeta } | null {
-      const incomingTiebreaker = incomingMeta.tiebreaker || senderId;
-      const currentTiebreaker = currentMeta.tiebreaker || getPeerId();
+        const incomingTiebreaker = incomingMeta.tiebreaker || senderId;
+        const currentTiebreaker = currentMeta.tiebreaker || getPeerId();
 
-      const timestampWins = incomingMeta.timestamp > currentMeta.timestamp;
-      const tiebreakWins =
-        incomingMeta.timestamp === currentMeta.timestamp && incomingTiebreaker > currentTiebreaker;
+        const timestampWins = incomingMeta.timestamp > currentMeta.timestamp;
+        const tiebreakWins =
+          incomingMeta.timestamp === currentMeta.timestamp &&
+          incomingTiebreaker > currentTiebreaker;
 
-      return timestampWins || tiebreakWins
-        ? { state: incomingState, meta: { ...incomingMeta, tiebreaker: incomingTiebreaker } }
-        : null;
+        if (timestampWins || tiebreakWins) {
+          ctx.commit(payload.state, { ...incomingMeta, tiebreaker: incomingTiebreaker });
+        }
+      });
+
+      const unsubWrite = ctx.onLocalWrite((state) => {
+        const meta: LastWriteWinsMeta = { timestamp: Date.now(), tiebreaker: getPeerId() };
+        ctx.commit(state, meta);
+        ctx.broadcast({ state, meta });
+      });
+
+      const unsubConnected = ctx.onPeerConnected((remotePeerId) => {
+        ctx.sendToPeer(remotePeerId, { state: ctx.getState(), meta: ctx.getMeta() });
+      });
+
+      return () => {
+        unsubMessage();
+        unsubWrite();
+        unsubConnected();
+      };
     },
   };
 }
