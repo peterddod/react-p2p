@@ -1,3 +1,23 @@
+# [1.3.0](https://github.com/peterddod/phop/compare/v1.2.0...v1.3.0) (2026-03-01)
+
+
+### Bug Fixes
+
+* **consensus:** canonicalise arrays in sortKeys and validate maxRetries ([de06ad1](https://github.com/peterddod/phop/commit/de06ad1fcc9c5493d5f062ccc2247a9d48bccab1))
+* **consensus:** enforce round membership and monotonic index guards ([1d8f89d](https://github.com/peterddod/phop/commit/1d8f89dcf7ee3c96108825e921e9ce9c8f29ad30))
+* **consensus:** fix double-encoding in deterministic hash ([04b0f71](https://github.com/peterddod/phop/commit/04b0f7194b8b4a516b8e03df0fb65a360028fda4))
+* **consensus:** handle peer departures mid-round, cap retries, clarify pendingWrite semantics ([48db7fe](https://github.com/peterddod/phop/commit/48db7fe7910b9a1a2cba213c36edfa5eafcd8602))
+* **consensus:** preserve local proposal when all remote peers depart mid-round ([30eec91](https://github.com/peterddod/phop/commit/30eec91ffdfb697a28c13bf6f5f1327a7c20a4d3))
+* **consensus:** resolve protocol stalls and correct merge priority ([54cda30](https://github.com/peterddod/phop/commit/54cda3024a9458439081c738280b3397ad0cb82c))
+* **consensus:** seed roundIndex from committed meta and advance after StatePush ([34dfc69](https://github.com/peterddod/phop/commit/34dfc69beb2008178e8d5aea5f3604ea9dbaaff6))
+* **phop:** monotonic LWW timestamps, safe peer-change dispatch, and guarded broadcast payloads ([b80de63](https://github.com/peterddod/phop/commit/b80de6314b170bba908d0e819ea7c57a53bcf545))
+* **phop:** strengthen isSharedStatePayload type guard ([ddc17f3](https://github.com/peterddod/phop/commit/ddc17f35cade8faccf15bfa7a992789e35d67877))
+
+
+### Features
+
+* **phop:** add consensus merge strategy ([94022da](https://github.com/peterddod/phop/commit/94022dacc2366c5895d3b23ccd27856505cb081c))
+
 # [1.2.0](https://github.com/peterddod/phop/compare/v1.1.16...v1.2.0) (2026-03-01)
 
 
