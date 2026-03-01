@@ -65,21 +65,19 @@ function isStatePush(data: unknown): data is StatePush {
 // Deterministic hash
 // ---------------------------------------------------------------------------
 
-function sortedStringify(value: JSONSerializable | null): string {
+function sortKeys(value: JSONSerializable | null): JSONSerializable | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    return JSON.stringify(value);
+    return value;
   }
   const sorted: Record<string, JSONSerializable> = {};
   for (const k of Object.keys(value as Record<string, JSONSerializable>).sort()) {
-    sorted[k] = sortedStringify(
-      (value as Record<string, JSONSerializable>)[k]
-    ) as unknown as JSONSerializable;
+    sorted[k] = sortKeys((value as Record<string, JSONSerializable>)[k]) as JSONSerializable;
   }
-  return JSON.stringify(sorted);
+  return sorted;
 }
 
 function hashState(state: JSONSerializable | null): string {
-  return sortedStringify(state);
+  return JSON.stringify(sortKeys(state));
 }
 
 // ---------------------------------------------------------------------------
