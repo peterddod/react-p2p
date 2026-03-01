@@ -133,6 +133,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
+          node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
       - name: Download dist artifact
@@ -143,9 +144,7 @@ jobs:
 
       - name: Publish
         working-directory: packages/phop
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public --provenance
+        run: npm publish --access public
 
   publish-docker:
     name: Publish Docker image
