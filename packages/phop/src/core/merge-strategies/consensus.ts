@@ -475,6 +475,9 @@ export function createConsensusStrategy<TState extends JSONSerializable>(
     const currentMeta = ctx.getMeta();
     if (msg.meta.index > currentMeta.index) {
       ctx.commit(msg.state as TState | null, msg.meta);
+      // Advance roundIndex so that any propose with an index at or below the
+      // newly committed index is rejected by the monotonic guard in handlePropose.
+      roundIndex = Math.max(roundIndex, msg.meta.index);
     }
   }
 
@@ -551,6 +554,10 @@ export function createConsensusStrategy<TState extends JSONSerializable>(
 
     connect(context: StrategyContext<TState, ConsensusMeta>): () => void {
       ctx = context;
+      // Seed roundIndex from any already-committed meta so that stale propose
+      // messages (index ≤ committed index) are rejected immediately, even when
+      // the strategy is re-mounted after state has already been committed.
+      roundIndex = Math.max(roundIndex, context.getMeta().index);
 
       const unsubMessage = ctx.onMessage(handleMessage);
 
