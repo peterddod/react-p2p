@@ -1,3 +1,10 @@
+## [1.1.10](https://github.com/peterddod/phop/compare/v1.1.9...v1.1.10) (2026-03-01)
+
+
+### Bug Fixes
+
+* **ci:** run semantic-release before builds so version is bumped first ([8eee5e1](https://github.com/peterddod/phop/commit/8eee5e184524d90d4e0d3acc7f650e842169c904))
+
 ## [1.1.9](https://github.com/peterddod/phop/compare/v1.1.8...v1.1.9) (2026-03-01)
 
 
