@@ -11,12 +11,74 @@ permissions:
   issues: write
   pull-requests: write
   packages: write
-  id-token: write
 
 jobs:
-  ci:
-    name: CI
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ".bun-version"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Lint
+        run: bun lint
+
+  build-lib:
+    name: Build library
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ".bun-version"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build library
+        run: bun build:lib
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phop-dist
+          path: packages/phop/dist/
+          retention-days: 1
+
+  build-server:
+    name: Build server
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ".bun-version"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build server
+        run: bun build:server
+
+  semantic-release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [build-lib, build-server]
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,42 +89,10 @@ jobs:
         with:
           bun-version-file: ".bun-version"
 
-      - uses: actions/setup-node@v4
-        with:
-          registry-url: "https://registry.npmjs.org"
-
       - name: Install dependencies
         run: bun install
 
-      - name: Lint
-        run: bun lint
-
-      - name: Build library
-        run: bun build:lib
-
-      - name: Build server
-        run: bun build:server
-
-      # --- Release (push to main only) ---
-
-      - name: Log in to GHCR
-        if: github.event_name == 'push'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Log in to Docker Hub
-        if: github.event_name == 'push'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Release
-        if: github.event_name == 'push'
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIT_AUTHOR_NAME: github-actions[bot]
@@ -72,7 +102,6 @@ jobs:
         run: bunx semantic-release
 
       - name: Read release version
-        if: always() && github.event_name == 'push'
         id: release
         run: |
           if [ -f .release-version ]; then
@@ -82,8 +111,52 @@ jobs:
             echo "released=false" >> $GITHUB_OUTPUT
           fi
 
+  publish-npm:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: [semantic-release]
+    if: needs.semantic-release.outputs.released == 'true'
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: phop-dist
+          path: packages/phop/dist/
+
+      - name: Publish
+        working-directory: packages/phop
+        run: npm publish --access public
+
+  publish-docker:
+    name: Publish Docker image
+    runs-on: ubuntu-latest
+    needs: [semantic-release]
+    if: needs.semantic-release.outputs.released == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build and push Docker image
-        if: always() && steps.release.outputs.released == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -91,6 +164,6 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/signalling-server:latest
-            ghcr.io/${{ github.repository }}/signalling-server:${{ steps.release.outputs.version }}
+            ghcr.io/${{ github.repository }}/signalling-server:${{ needs.semantic-release.outputs.version }}
             ${{ secrets.DOCKERHUB_USERNAME }}/signalling-server:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/signalling-server:${{ steps.release.outputs.version }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/signalling-server:${{ needs.semantic-release.outputs.version }}
