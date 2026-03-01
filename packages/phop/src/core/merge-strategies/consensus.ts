@@ -221,6 +221,8 @@ export function createConsensusStrategy<TState extends JSONSerializable>(
   let retryCount = 0;
   // Propose messages that arrived for a future round while we were still in an
   // active round. Flushed into handlePropose once the current round commits.
+  // Capped to prevent unbounded growth from a slow or misbehaving peer.
+  const MAX_BUFFERED_PROPOSES = 50;
   const bufferedProposes: Array<{ msg: ProposeMessage; senderId: string }> = [];
 
   // ---------------------------------------------------------------------------
@@ -505,13 +507,14 @@ export function createConsensusStrategy<TState extends JSONSerializable>(
       // already committed — accepting them could regress committed state.
       if (msg.index <= roundIndex) return;
       roundIndex = msg.index;
-      const round = startRound(msg.index, ctx.getState());
+      const localState = ctx.getState();
+      const round = startRound(msg.index, localState);
       if (msg.isInitiator) round.initiators.add(senderId);
       // Broadcast our own proposal so others know we've joined.
       broadcastMsg({
         type: 'consensus-propose',
         index: round.index,
-        localState: ctx.getState(),
+        localState,
       });
       round.proposals.set(senderId, msg.localState as TState | null);
       checkAllProposed(round);
@@ -529,8 +532,11 @@ export function createConsensusStrategy<TState extends JSONSerializable>(
     }
 
     // Proposal is for a future round — buffer it so it isn't lost while we
-    // finish the current round.
+    // finish the current round. Evict the oldest entry when the cap is reached.
     if (msg.index > activeRound.index) {
+      if (bufferedProposes.length >= MAX_BUFFERED_PROPOSES) {
+        bufferedProposes.shift();
+      }
       bufferedProposes.push({ msg, senderId });
     }
   }
