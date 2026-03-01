@@ -143,7 +143,7 @@ jobs:
 
       - name: Publish
         working-directory: packages/phop
-        run: npm publish --access public
+        run: npm publish --access public --provenance
 
   publish-docker:
     name: Publish Docker image
