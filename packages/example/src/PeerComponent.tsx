@@ -47,6 +47,7 @@ function SharedLabel({ disabled }: { disabled: boolean }) {
           className="store-input"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
+          aria-label="Shared label"
           placeholder="Shared label"
           disabled={disabled}
           style={{ borderColor: color }}
@@ -63,6 +64,7 @@ function SharedLabel({ disabled }: { disabled: boolean }) {
             height: 40,
             fontSize: '1.1rem',
           }}
+          aria-label="Cycle color"
           title="Cycle color"
         >
           &#9673;

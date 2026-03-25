@@ -13,16 +13,19 @@ export type SharedStatePayload = {
 };
 
 export function isStateRequest(data: unknown): data is StateRequestPayload {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'type' in data &&
-    (data as StateRequestPayload).type === 'state-request'
-  );
+  if (typeof data !== 'object' || data === null) return false;
+  const d = data as Record<string, unknown>;
+  return d.type === 'state-request' && typeof d.key === 'string';
 }
 
 export function isSharedStatePayload(data: unknown): data is SharedStatePayload {
   if (typeof data !== 'object' || data === null) return false;
   const d = data as Record<string, unknown>;
-  return typeof d.key === 'string' && 'state' in d && typeof d.meta === 'object' && d.meta !== null;
+  return (
+    typeof d.key === 'string' &&
+    'state' in d &&
+    d.state !== undefined &&
+    typeof d.meta === 'object' &&
+    d.meta !== null
+  );
 }

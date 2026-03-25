@@ -84,6 +84,7 @@ export function useSharedState<
       : (lamportStrategyRef.current as unknown as MergeStrategy<TState, TMeta>);
 
   const controllerRef = useRef<SharedStateController<TState, TMeta> | null>(null);
+  const pendingDestroyRef = useRef<SharedStateController<TState, TMeta> | null>(null);
 
   // Create / recreate controller when key or strategy changes.
   // We track prev values to detect changes and destroy the old controller.
@@ -95,7 +96,7 @@ export function useSharedState<
     prevKeyRef.current !== key ||
     prevStrategyRef.current !== effectiveStrategy
   ) {
-    controllerRef.current?.destroy();
+    pendingDestroyRef.current = controllerRef.current;
     controllerRef.current = new SharedStateController(
       key,
       initialState,
@@ -110,12 +111,17 @@ export function useSharedState<
 
   // Keep controller room bindings in an effect to avoid render-phase side effects.
   useLayoutEffect(() => {
+    pendingDestroyRef.current?.destroy();
+    pendingDestroyRef.current = null;
+    controller.start();
     controller.syncRoom(roomHandle);
   }, [controller, roomHandle]);
 
   // Destroy controller on unmount.
   useEffect(() => {
     return () => {
+      pendingDestroyRef.current?.destroy();
+      pendingDestroyRef.current = null;
       controllerRef.current?.destroy();
       controllerRef.current = null;
     };

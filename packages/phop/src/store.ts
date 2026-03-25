@@ -157,6 +157,10 @@ class StoreInstance<T, TMeta extends MergeMeta> {
     this.controller.syncRoom(room);
   }
 
+  start(): void {
+    this.controller.start();
+  }
+
   destroy(): void {
     this.controller.destroy();
     this.listeners.clear();
@@ -278,6 +282,7 @@ export function createSharedStore<T, TMeta extends MergeMeta = LamportMeta>(
 
     // Keep room bindings fresh outside render to preserve hook purity.
     useLayoutEffect(() => {
+      instance.start();
       instance.syncRoom(roomHandle);
     }, [instance, roomHandle]);
 

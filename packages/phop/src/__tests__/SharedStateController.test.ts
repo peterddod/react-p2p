@@ -72,6 +72,7 @@ function createTestController(
   const mock = createMockRoom(peerId);
   const strategy = createLamportStrategy(() => mock.room.peerId);
   const controller = new SharedStateController(key, initialState, strategy, mock.room);
+  controller.start();
   return { controller, ...mock, strategy };
 }
 
@@ -210,6 +211,7 @@ describe('SharedStateController', () => {
 
     const mock = createMockRoom('peer-1');
     const controller = new SharedStateController('k', null, customStrategy, mock.room);
+    controller.start();
 
     mock.simulateMessage('peer-2', { key: 'k', type: 'propose', round: 1 });
 
@@ -239,6 +241,7 @@ describe('SharedStateController', () => {
 
     const mock2 = createMockRoom('peer-1', ['peer-1']);
     const ctrl = new SharedStateController('k', 0, customStrategy, mock2.room);
+    ctrl.start();
 
     const newPeers = ['peer-1', 'peer-2'];
     ctrl.syncRoom({ ...mock2.room, peers: newPeers });

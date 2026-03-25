@@ -40,7 +40,12 @@ export function Room({ children, signallingServerUrl, roomId }: RoomProps) {
   const connectionsRef = useRef<Map<string, PeerConnection>>(new Map());
   const handlersRef = useRef<Set<MessageHandler>>(new Set());
   const peerConnectedHandlersRef = useRef<Set<(remotePeerId: string) => void>>(new Set());
-  const internalStoreRegistryRef = useRef<Map<string, unknown>>(new Map());
+  const internalStoreRegistriesRef = useRef<Map<string, Map<string, unknown>>>(new Map());
+  let internalStoreRegistry = internalStoreRegistriesRef.current.get(roomId);
+  if (!internalStoreRegistry) {
+    internalStoreRegistry = new Map<string, unknown>();
+    internalStoreRegistriesRef.current.set(roomId, internalStoreRegistry);
+  }
 
   useEffect(
     function initializeSignalingClient() {
@@ -205,7 +210,7 @@ export function Room({ children, signallingServerUrl, roomId }: RoomProps) {
     sendToPeer,
     onMessage,
     onPeerConnected,
-    __internalStoreRegistry: internalStoreRegistryRef.current,
+    __internalStoreRegistry: internalStoreRegistry,
   };
 
   return <RoomContext.Provider value={contextValue}>{children}</RoomContext.Provider>;

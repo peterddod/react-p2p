@@ -4,47 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { RoomContext, type RoomContextValue } from '../context/Room';
 import type { MergeStrategy } from '../core/merge-strategies';
 import { useSharedState } from '../hooks/useSharedState';
-
-function createMockRoomContext(
-  peerId = 'peer-1',
-  peers: string[] = ['peer-1']
-): {
-  value: RoomContextValue;
-  wrapper: React.FC<PropsWithChildren>;
-} {
-  const value: RoomContextValue = {
-    roomId: 'test-room',
-    peerId,
-    peers,
-    isConnected: true,
-    broadcast: vi.fn(),
-    sendToPeer: vi.fn(),
-    onMessage: vi.fn(() => () => {}),
-    onPeerConnected: vi.fn(() => () => {}),
-  };
-
-  const wrapper: React.FC<PropsWithChildren> = ({ children }) => (
-    <RoomContext.Provider value={value}>{children}</RoomContext.Provider>
-  );
-
-  return { value, wrapper };
-}
-
-function createStrictMockRoomContext(
-  peerId = 'peer-1',
-  peers: string[] = ['peer-1']
-): {
-  value: RoomContextValue;
-  wrapper: React.FC<PropsWithChildren>;
-} {
-  const { value, wrapper: BaseWrapper } = createMockRoomContext(peerId, peers);
-  const wrapper: React.FC<PropsWithChildren> = ({ children }) => (
-    <StrictMode>
-      <BaseWrapper>{children}</BaseWrapper>
-    </StrictMode>
-  );
-  return { value, wrapper };
-}
+import { createMockRoomContext, createStrictMockRoomContext } from './helpers/mockRoomContext';
 
 describe('useSharedState', () => {
   it('supports functional updater form like useState', () => {

@@ -29,7 +29,7 @@ function Counter() {
   const [count, setCount] = useSharedState('count', 0);
 
   return (
-    <button onClick={() => setCount(count + 1)}>
+    <button onClick={() => setCount((prev) => (prev ?? 0) + 1)}>
       Count: {count}
     </button>
   );
@@ -54,7 +54,14 @@ Establishes a WebRTC mesh with all peers in the given room.
 Shared state hook — works like `useState` but syncs across all peers in the room. Best for simple, single-value state.
 
 ```ts
-const [value, setValue] = useSharedState<T>(key: string, initialValue: T, strategy?: MergeStrategy);
+const [value, setValue] = useSharedState<T>(
+  key: string,
+  initialValue: T,
+  strategy?: MergeStrategy
+);
+
+setValue(nextValue);
+setValue((prev) => deriveNext(prev));
 ```
 
 ### `createSharedStore(key, initializer, options?)`
@@ -76,7 +83,7 @@ function Counter() {
 }
 ```
 
-The store state must be JSON-serializable by default. If your store includes non-serializable fields (like functions), provide a `partialize` option to extract the synced slice:
+By default, `createSharedStore` syncs the state returned by `partialize` (or all non-function fields if `partialize` is omitted). You only need `partialize` when you want to explicitly control the synced slice or your state includes non-JSON-serializable values.
 
 ```ts
 type State = { count: number; increment: () => void };
@@ -90,7 +97,7 @@ const useStore = createSharedStore<State, Synced>('key', (set) => ({
 });
 ```
 
-A custom merge strategy can be passed via `options.strategy`. The default is a Lamport logical clock.
+A custom `MergeStrategy` can be passed via `options.strategy`. The default is a Lamport logical clock.
 
 #### `useSharedState` vs `createSharedStore`
 

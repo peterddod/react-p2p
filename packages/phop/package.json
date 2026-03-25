@@ -48,7 +48,6 @@
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
-    "@testing-library/react-hooks": "^8.0.1",
     "@types/react": "^19.1.9",
     "jsdom": "^29.0.1",
     "tsup": "^8.5.0",

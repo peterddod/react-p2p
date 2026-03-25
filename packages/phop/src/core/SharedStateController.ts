@@ -55,6 +55,7 @@ export class SharedStateController<
 
   private strategyCleanup: (() => void) | null = null;
   private messageUnsubscribe: (() => void) | null = null;
+  private started = false;
   private destroyed = false;
 
   constructor(
@@ -69,8 +70,12 @@ export class SharedStateController<
     this.strategy = strategy;
 
     this.applyRoom(room);
+  }
+  start(): void {
+    if (this.destroyed || this.started) return;
     this.connectStrategy();
     this.subscribeToMessages();
+    this.started = true;
   }
 
   // -------------------------------------------------------------------
@@ -107,9 +112,23 @@ export class SharedStateController<
    * so the strategy always sees current values without re-subscription.
    */
   syncRoom(room: RoomHandle): void {
+    const prevOnMessage = this.onMessage;
+    const prevOnPeerConnected = this.onPeerConnected;
     const prevPeers = this.peers;
 
     this.applyRoom(room);
+
+    if (
+      this.started &&
+      (prevOnMessage !== room.onMessage || prevOnPeerConnected !== room.onPeerConnected)
+    ) {
+      this.strategyCleanup?.();
+      this.strategyCleanup = null;
+      this.messageUnsubscribe?.();
+      this.messageUnsubscribe = null;
+      this.connectStrategy();
+      this.subscribeToMessages();
+    }
 
     if (prevPeers !== room.peers) {
       for (const handler of this.peersChangedHandlers) {
@@ -121,8 +140,11 @@ export class SharedStateController<
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.started = false;
     this.strategyCleanup?.();
+    this.strategyCleanup = null;
     this.messageUnsubscribe?.();
+    this.messageUnsubscribe = null;
     this.localWriteHandlers.clear();
     this.messageHandlers.clear();
     this.peersChangedHandlers.clear();
