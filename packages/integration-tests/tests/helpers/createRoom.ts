@@ -1,7 +1,7 @@
 import type { Browser } from '@playwright/test';
 import { PeerHandle } from './PeerHandle';
 
-const HARNESS_URL = 'http://localhost:9000';
+const HARNESS_URL = process.env.HARNESS_URL ?? 'http://localhost:9000';
 const DEFAULT_SERVER_URL = 'ws://localhost:8080';
 
 interface CreateRoomOptions {
