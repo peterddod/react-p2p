@@ -1,4 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import {
   createLamportStrategy,
   type LamportMeta,
@@ -133,7 +133,7 @@ class StoreInstance<T, TMeta extends MergeMeta> {
     this.controller.subscribe(() => {
       const synced = this.controller.getState();
       if (synced !== null) {
-        this.state = Object.assign(Object.create(null), this.state, synced) as T;
+        this.state = Object.assign({}, this.state, synced) as T;
         this.notify();
       }
     });
@@ -258,7 +258,10 @@ export function createSharedStore<T, TMeta extends MergeMeta = LamportMeta>(
 
     const instance = entry.instance;
 
-    instance.syncRoom(room);
+    // Keep room bindings fresh outside render to preserve hook purity.
+    useLayoutEffect(() => {
+      instance.syncRoom(room);
+    }, [instance, room.peerId, room.peers, room.broadcast, room.sendToPeer, room.onMessage, room.onPeerConnected]);
 
     useEffect(() => {
       entry.refCount += 1;
@@ -274,33 +277,30 @@ export function createSharedStore<T, TMeta extends MergeMeta = LamportMeta>(
       };
     }, [entry, registry, registryKey]);
 
-    const getSnapshot = instance.getState;
     const subscribe = instance.subscribe;
+    const getStateSnapshot = instance.getState;
 
-    const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-
-    const selectorRef = useRef(selector);
-    selectorRef.current = selector;
-    const equalityFnRef = useRef(equalityFn);
-    equalityFnRef.current = equalityFn;
-    const selectedRef = useRef<U | undefined>(undefined);
-
-    if (!selector) return state;
-
-    const selected = selector(state);
-
-    // Bail out of re-render if the selected slice is equal.
-    if (
-      selectedRef.current !== undefined &&
-      equalityFnRef.current
-        ? equalityFnRef.current(selectedRef.current as U, selected)
-        : selectedRef.current === selected
-    ) {
-      return selectedRef.current as U;
+    if (!selector) {
+      return useSyncExternalStore(subscribe, getStateSnapshot, getStateSnapshot);
     }
 
-    selectedRef.current = selected;
-    return selected;
+    const hasSelectionRef = useRef(false);
+    const selectedRef = useRef<U | undefined>(undefined);
+    const getSelectedSnapshot = useCallback((): U => {
+      const next = selector(instance.getState());
+
+      if (hasSelectionRef.current) {
+        const prev = selectedRef.current as U;
+        const equal = equalityFn ? equalityFn(prev, next) : prev === next;
+        if (equal) return prev;
+      }
+
+      hasSelectionRef.current = true;
+      selectedRef.current = next;
+      return next;
+    }, [instance, selector, equalityFn]);
+
+    return useSyncExternalStore(subscribe, getSelectedSnapshot, getSelectedSnapshot);
   }
 
   return useSharedStore as UseSharedStore<T>;

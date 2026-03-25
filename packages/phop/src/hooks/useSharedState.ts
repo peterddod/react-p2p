@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import {
   createLamportStrategy,
   type LamportMeta,
@@ -85,9 +85,10 @@ export function useSharedState<
 
   const controller = controllerRef.current;
 
-  // Push latest room fields each render so the controller always has
-  // current values (peerId, peers, broadcast, etc.).
-  controller.syncRoom(room);
+  // Keep controller room bindings in an effect to avoid render-phase side effects.
+  useLayoutEffect(() => {
+    controller.syncRoom(room);
+  }, [controller, room.peerId, room.peers, room.broadcast, room.sendToPeer, room.onMessage, room.onPeerConnected]);
 
   // Destroy controller on unmount.
   useEffect(() => {

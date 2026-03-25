@@ -21,6 +21,7 @@ function createMockRoomContext(peerId = 'peer-1', peers: string[] = ['peer-1']):
     sendToPeer: vi.fn(),
     onMessage: vi.fn(() => () => {}),
     onPeerConnected: vi.fn(() => () => {}),
+    __internalStoreRegistry: new Map(),
   };
 
   const wrapper: React.FC<PropsWithChildren> = ({ children }) => (
@@ -241,6 +242,7 @@ describe('createSharedStore', () => {
         sendToPeer: vi.fn(),
         onMessage: vi.fn(() => () => {}),
         onPeerConnected: vi.fn(() => () => {}),
+        __internalStoreRegistry: new Map(),
       } as RoomContextValue,
     };
 
@@ -259,5 +261,53 @@ describe('createSharedStore', () => {
 
     const broadcastCall = (state.current.broadcast as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(broadcastCall.data.meta).toEqual(expect.objectContaining({ tiebreaker: 'peer-1' }));
+  });
+
+  it('selector subscriptions avoid unrelated re-renders', () => {
+    const { wrapper } = createMockRoomContext();
+
+    interface State {
+      count: number;
+      name: string;
+      increment: () => void;
+    }
+
+    const useStore = createSharedStore<State>('counter', (set) => ({
+      count: 0,
+      name: 'alice',
+      increment: () => set((s) => ({ count: s.count + 1 })),
+    }));
+
+    let countRenders = 0;
+    let nameRenders = 0;
+
+    const countHook = renderHook(
+      () => {
+        countRenders += 1;
+        return useStore((s) => s.count);
+      },
+      { wrapper },
+    );
+
+    const nameHook = renderHook(
+      () => {
+        nameRenders += 1;
+        return useStore((s) => s.name);
+      },
+      { wrapper },
+    );
+
+    const actionHook = renderHook(() => useStore((s) => s.increment), { wrapper });
+
+    const initialNameRenders = nameRenders;
+
+    act(() => {
+      actionHook.result.current();
+    });
+
+    expect(countHook.result.current).toBe(1);
+    expect(nameHook.result.current).toBe('alice');
+    expect(countRenders).toBeGreaterThan(1);
+    expect(nameRenders).toBe(initialNameRenders);
   });
 });
