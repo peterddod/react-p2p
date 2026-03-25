@@ -1,8 +1,76 @@
-import { Room, useRoom, useSharedState } from '@peterddod/phop';
+import { Room, createSharedStore, useRoom, useSharedState } from '@peterddod/phop';
 import { useState } from 'react';
 import './Peer.css';
 
+// ---------------------------------------------------------------------------
+// Zustand-style shared store — defined at module scope, bound inside <Room>
+// ---------------------------------------------------------------------------
+
+interface LabelState {
+  label: string;
+  color: string;
+  setLabel: (label: string) => void;
+  cycleColor: () => void;
+}
+
+const COLORS = ['#667eea', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+const useLabelStore = createSharedStore<LabelState>('label', (set, get) => ({
+  label: '',
+  color: COLORS[0],
+  setLabel: (label: string) => set({ label }),
+  cycleColor: () => {
+    const idx = COLORS.indexOf(get().color);
+    set({ color: COLORS[(idx + 1) % COLORS.length] });
+  },
+}));
+
 const DEFAULT_SERVER_URL = 'ws://localhost:8080';
+
+function SharedLabel({ disabled }: { disabled: boolean }) {
+  const label = useLabelStore((s) => s.label);
+  const color = useLabelStore((s) => s.color);
+  const setLabel = useLabelStore((s) => s.setLabel);
+  const cycleColor = useLabelStore((s) => s.cycleColor);
+
+  return (
+    <div className="store-container">
+      <p className="counter-label">Shared store (createSharedStore)</p>
+      <div className="store-preview" style={{ borderColor: color }}>
+        <span className="store-preview-text" style={{ color }}>
+          {label || 'Type something...'}
+        </span>
+      </div>
+      <div className="store-controls">
+        <input
+          type="text"
+          className="store-input"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Shared label"
+          disabled={disabled}
+          style={{ borderColor: color }}
+        />
+        <button
+          type="button"
+          className="counter-button"
+          onClick={cycleColor}
+          disabled={disabled}
+          style={{
+            background: color,
+            boxShadow: `0 2px 8px ${color}55`,
+            width: 40,
+            height: 40,
+            fontSize: '1.1rem',
+          }}
+          title="Cycle color"
+        >
+          &#9673;
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function PeerContent({
   peerName,
@@ -47,27 +115,32 @@ function PeerContent({
         </div>
       </div>
 
-      <div className="counter-container">
-        <p className="counter-label">Shared counter</p>
-        <div className="counter-display">{count ?? 0}</div>
-        <div className="counter-controls">
-          <button
-            type="button"
-            className="counter-button"
-            onClick={() => setCount((count ?? 0) - 1)}
-            disabled={disabled}
-          >
-            −
-          </button>
-          <button
-            type="button"
-            className="counter-button"
-            onClick={() => setCount((count ?? 0) + 1)}
-            disabled={disabled}
-          >
-            +
-          </button>
+      <div className="demos-container">
+        <div className="counter-container">
+          <p className="counter-label">Shared counter (useSharedState)</p>
+          <div className="counter-display">{count ?? 0}</div>
+          <div className="counter-controls">
+            <button
+              type="button"
+              className="counter-button"
+              onClick={() => setCount((count ?? 0) - 1)}
+              disabled={disabled}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="counter-button"
+              onClick={() => setCount((count ?? 0) + 1)}
+              disabled={disabled}
+            >
+              +
+            </button>
+          </div>
         </div>
+
+        <SharedLabel disabled={disabled} />
+
         {disabled && (
           <p className="counter-hint">
             {!isConnected ? 'Connecting to room...' : 'Waiting for another peer to join...'}
@@ -87,6 +160,7 @@ function PeerContent({
 export default function PeerComponent() {
   const params = new URLSearchParams(window.location.search);
   const peerName = params.get('peer') || 'Unknown';
+  const roomId = params.get('roomId') || 'demo-room';
 
   const [inputUrl, setInputUrl] = useState(DEFAULT_SERVER_URL);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
@@ -126,7 +200,7 @@ export default function PeerComponent() {
   }
 
   return (
-    <Room signallingServerUrl={serverUrl} roomId="demo-room">
+    <Room signallingServerUrl={serverUrl} roomId={roomId}>
       <PeerContent
         peerName={`Peer ${peerName}`}
         serverUrl={serverUrl}
