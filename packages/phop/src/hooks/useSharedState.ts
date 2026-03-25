@@ -1,39 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import {
   createLamportStrategy,
   type LamportMeta,
   type MergeMeta,
   type MergeStrategy,
 } from '../core/merge-strategies';
-import type { StrategyContext } from '../core/merge-strategies/types';
+import { SharedStateController } from '../core/SharedStateController';
 import type { JSONSerializable } from '../types';
 import { useRoom } from './useRoom';
 
-type StateRequestPayload = {
-  type: 'state-request';
-  key: string;
-};
-
-type SharedStatePayload = {
-  key: string;
-  state: JSONSerializable | null;
-  meta: MergeMeta;
-};
-
-function isStateRequest(data: unknown): data is StateRequestPayload {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'type' in data &&
-    (data as StateRequestPayload).type === 'state-request'
-  );
-}
-
-function isSharedStatePayload(data: unknown): data is SharedStatePayload {
-  if (typeof data !== 'object' || data === null) return false;
-  const d = data as Record<string, unknown>;
-  return typeof d.key === 'string' && 'state' in d && typeof d.meta === 'object' && d.meta !== null;
-}
+type SetStateAction<TState> = TState | ((prev: TState) => TState);
 
 /**
  * A hook that allows you to share state between multiple peers.
@@ -52,7 +28,7 @@ function isSharedStatePayload(data: unknown): data is SharedStatePayload {
 export function useSharedState<TState extends JSONSerializable>(
   key: string,
   initialState: TState | null
-): [state: TState | null, setState: (next: TState | null) => void];
+): [state: TState | null, setState: (next: SetStateAction<TState | null>) => void];
 
 /**
  * A hook that allows you to share state between multiple peers with a custom merge strategy.
@@ -66,7 +42,7 @@ export function useSharedState<TState extends JSONSerializable, TMeta extends Me
   key: string,
   initialState: TState | null,
   strategy: MergeStrategy<TState, TMeta>
-): [state: TState | null, setState: (next: TState | null) => void];
+): [state: TState | null, setState: (next: SetStateAction<TState | null>) => void];
 
 export function useSharedState<
   TState extends JSONSerializable,
@@ -75,23 +51,10 @@ export function useSharedState<
   key: string,
   initialState: TState | null,
   strategy?: MergeStrategy<TState, TMeta>
-): [state: TState | null, setState: (next: TState | null) => void] {
-  const { broadcast, onMessage, onPeerConnected, peers, peerId, sendToPeer } = useRoom();
-
-  const peerIdRef = useRef(peerId);
-  peerIdRef.current = peerId;
-
-  const peersRef = useRef(peers);
-  peersRef.current = peers;
-
-  const broadcastRef = useRef(broadcast);
-  broadcastRef.current = broadcast;
-
-  const sendToPeerRef = useRef(sendToPeer);
-  sendToPeerRef.current = sendToPeer;
-
-  const onPeerConnectedRef = useRef(onPeerConnected);
-  onPeerConnectedRef.current = onPeerConnected;
+): [state: TState | null, setState: (next: SetStateAction<TState | null>) => void] {
+  const room = useRoom();
+  const peerIdRef = useRef(room.peerId);
+  peerIdRef.current = room.peerId;
 
   const lamportStrategyRef = useRef<MergeStrategy<JSONSerializable, LamportMeta>>(
     createLamportStrategy(() => peerIdRef.current)
@@ -102,152 +65,46 @@ export function useSharedState<
       ? strategy
       : (lamportStrategyRef.current as unknown as MergeStrategy<TState, TMeta>);
 
-  const [rawState, setRawState] = useState<TState | null>(initialState);
-  const rawStateRef = useRef<TState | null>(initialState);
-  const rawStateMetaRef = useRef<TMeta>(effectiveStrategy.initialMeta);
+  const controllerRef = useRef<SharedStateController<TState, TMeta> | null>(null);
 
-  rawStateRef.current = rawState;
+  // Create / recreate controller when key or strategy changes.
+  // We track prev values to detect changes and destroy the old controller.
+  const prevKeyRef = useRef(key);
+  const prevStrategyRef = useRef(effectiveStrategy);
 
-  // Handlers registered by the strategy via ctx.onLocalWrite.
-  const localWriteHandlersRef = useRef<Set<(state: TState | null) => void>>(new Set());
+  if (
+    controllerRef.current === null ||
+    prevKeyRef.current !== key ||
+    prevStrategyRef.current !== effectiveStrategy
+  ) {
+    controllerRef.current?.destroy();
+    controllerRef.current = new SharedStateController(key, initialState, effectiveStrategy, room);
+    prevKeyRef.current = key;
+    prevStrategyRef.current = effectiveStrategy;
+  }
 
-  // Handlers registered by the strategy via ctx.onMessage (pre-filtered by key).
-  const messageHandlersRef = useRef<Set<(data: JSONSerializable, senderId: string) => void>>(
-    new Set()
-  );
+  const controller = controllerRef.current;
 
-  // Handlers registered by the strategy via ctx.onPeersChanged.
-  const peersChangedHandlersRef = useRef<Set<(peers: string[]) => void>>(new Set());
+  // Push latest room fields each render so the controller always has
+  // current values (peerId, peers, broadcast, etc.).
+  controller.syncRoom(room);
 
-  // Fire onPeersChanged handlers after render when the peers array reference changes.
-  const prevPeersRef = useRef<string[]>(peers);
+  // Destroy controller on unmount.
   useEffect(() => {
-    if (prevPeersRef.current !== peers) {
-      prevPeersRef.current = peers;
-      for (const handler of peersChangedHandlersRef.current) {
-        handler(peers);
-      }
-    }
-  }, [peers]);
-
-  useEffect(
-    function connectStrategy() {
-      const ctx: StrategyContext<TState, TMeta> = {
-        // Expose a getter so strategies always read the current peer ID, even
-        // if the signalling handshake completes after connect() runs.
-        get peerId() {
-          return peerIdRef.current;
-        },
-
-        getPeers: () => peersRef.current,
-        getState: () => rawStateRef.current,
-        getMeta: () => rawStateMetaRef.current,
-
-        broadcast: (data) => {
-          if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-            throw new Error('ctx.broadcast: data must be a plain object');
-          }
-          broadcastRef.current({
-            senderId: peerIdRef.current,
-            // key is spread last so strategy payloads cannot overwrite the namespace.
-            data: { ...(data as Record<string, JSONSerializable>), key },
-            timestamp: Date.now(),
-          });
-        },
-
-        sendToPeer: (targetPeerId, data) => {
-          if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-            throw new Error('ctx.sendToPeer: data must be a plain object');
-          }
-          sendToPeerRef.current(targetPeerId, {
-            senderId: peerIdRef.current,
-            // key is spread last so strategy payloads cannot overwrite the namespace.
-            data: { ...(data as Record<string, JSONSerializable>), key },
-            timestamp: Date.now(),
-          });
-        },
-
-        onMessage: (handler) => {
-          messageHandlersRef.current.add(handler);
-          return () => {
-            messageHandlersRef.current.delete(handler);
-          };
-        },
-
-        onPeersChanged: (handler) => {
-          peersChangedHandlersRef.current.add(handler);
-          return () => peersChangedHandlersRef.current.delete(handler);
-        },
-
-        onPeerConnected: (handler) => {
-          return onPeerConnectedRef.current(handler);
-        },
-
-        commit: (state, meta) => {
-          rawStateRef.current = state;
-          rawStateMetaRef.current = meta;
-          setRawState(state);
-        },
-
-        onLocalWrite: (handler) => {
-          localWriteHandlersRef.current.add(handler);
-          return () => localWriteHandlersRef.current.delete(handler);
-        },
-      };
-
-      const cleanup = effectiveStrategy.connect(ctx);
-      return cleanup;
-    },
-    [key, effectiveStrategy]
-  );
-
-  useEffect(
-    function handleMessage() {
-      const unsubscribe = onMessage(({ senderId, data }) => {
-        if (senderId === peerId) return;
-
-        if (isStateRequest(data)) {
-          if (data.key === key) {
-            sendToPeer(senderId, {
-              senderId: peerId,
-              data: {
-                key,
-                state: rawStateRef.current,
-                meta: rawStateMetaRef.current,
-              } as JSONSerializable,
-              timestamp: Date.now(),
-            });
-          }
-          return;
-        }
-
-        if (typeof data !== 'object' || data === null) return;
-        const keyed = data as Record<string, JSONSerializable>;
-        if (keyed.key !== key) return;
-
-        // For standard state payloads strip the namespace key before forwarding
-        // so strategies receive a consistent { state, meta } shape. For other
-        // keyed protocol messages (e.g. consensus rounds) forward the full
-        // payload so strategies can dispatch on their own message type field.
-        const forwarded: JSONSerializable = isSharedStatePayload(data)
-          ? ({ state: data.state, meta: data.meta } as JSONSerializable)
-          : (keyed as JSONSerializable);
-
-        for (const handler of messageHandlersRef.current) {
-          handler(forwarded, senderId);
-        }
-      });
-
-      return unsubscribe;
-    },
-    [key, onMessage, peerId, sendToPeer]
-  );
-
-  const setState = useCallback((next: TState | null): void => {
-    for (const handler of localWriteHandlersRef.current) {
-      handler(next);
-    }
+    return () => {
+      controllerRef.current?.destroy();
+      controllerRef.current = null;
+    };
   }, []);
 
-  return [rawState, setState];
+  const state = useSyncExternalStore(controller.subscribe, controller.getState, controller.getState);
+
+  const setState = useCallback(
+    (next: SetStateAction<TState | null>): void => {
+      controllerRef.current?.setState(next);
+    },
+    [],
+  );
+
+  return [state, setState];
 }

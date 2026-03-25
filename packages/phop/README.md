@@ -49,15 +49,57 @@ Establishes a WebRTC mesh with all peers in the given room.
 | `signallingServerUrl` | `string` | WebSocket URL of the signaling server |
 | `roomId` | `string` | Room identifier — peers sharing a room ID connect to each other |
 
-### `useSharedState(key, initialValue, options?)`
+### `useSharedState(key, initialValue, strategy?)`
 
-Shared state hook — works like `useState` but syncs across all peers in the room.
+Shared state hook — works like `useState` but syncs across all peers in the room. Best for simple, single-value state.
 
 ```ts
-const [value, setValue] = useSharedState<T>(key: string, initialValue: T, options?: {
-  mergeStrategy?: MergeStrategy; // default: lastWriteWins
-})
+const [value, setValue] = useSharedState<T>(key: string, initialValue: T, strategy?: MergeStrategy);
 ```
+
+### `createSharedStore(key, initializer, options?)`
+
+Define a Zustand-style store that syncs across peers. Define at module scope, use inside a `<Room>`.
+
+```tsx
+import { createSharedStore } from '@peterddod/phop';
+
+const useCounterStore = createSharedStore('counter', (set) => ({
+  count: 0,
+  increment: () => set((s) => ({ count: s.count + 1 })),
+}));
+
+function Counter() {
+  const count = useCounterStore((s) => s.count);
+  const increment = useCounterStore((s) => s.increment);
+  return <button onClick={increment}>Count: {count}</button>;
+}
+```
+
+The store state must be JSON-serializable by default. If your store includes non-serializable fields (like functions), provide a `partialize` option to extract the synced slice:
+
+```ts
+type State = { count: number; increment: () => void };
+type Synced = { count: number };
+
+const useStore = createSharedStore<State, Synced>('key', (set) => ({
+  count: 0,
+  increment: () => set((s) => ({ count: s.count + 1 })),
+}), {
+  partialize: (s) => ({ count: s.count }),
+});
+```
+
+A custom merge strategy can be passed via `options.strategy`. The default is a Lamport logical clock.
+
+#### `useSharedState` vs `createSharedStore`
+
+| | `useSharedState` | `createSharedStore` |
+|---|---|---|
+| **Mental model** | `useState` | Zustand `create` |
+| **Scope** | One value per key | Object with actions |
+| **Selectors** | No | Yes — fine-grained re-renders |
+| **Best for** | Simple shared values | App-level shared state with logic |
 
 ### `useRoom()`
 
