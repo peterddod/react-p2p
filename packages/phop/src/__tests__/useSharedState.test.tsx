@@ -1,11 +1,14 @@
 import { act, renderHook } from '@testing-library/react';
-import { StrictMode, type PropsWithChildren } from 'react';
+import { type PropsWithChildren, StrictMode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { RoomContext, type RoomContextValue } from '../context/Room';
 import type { MergeStrategy } from '../core/merge-strategies';
 import { useSharedState } from '../hooks/useSharedState';
 
-function createMockRoomContext(peerId = 'peer-1', peers: string[] = ['peer-1']): {
+function createMockRoomContext(
+  peerId = 'peer-1',
+  peers: string[] = ['peer-1']
+): {
   value: RoomContextValue;
   wrapper: React.FC<PropsWithChildren>;
 } {
@@ -27,7 +30,10 @@ function createMockRoomContext(peerId = 'peer-1', peers: string[] = ['peer-1']):
   return { value, wrapper };
 }
 
-function createStrictMockRoomContext(peerId = 'peer-1', peers: string[] = ['peer-1']): {
+function createStrictMockRoomContext(
+  peerId = 'peer-1',
+  peers: string[] = ['peer-1']
+): {
   value: RoomContextValue;
   wrapper: React.FC<PropsWithChildren>;
 } {
@@ -86,7 +92,9 @@ describe('useSharedState', () => {
       <RoomContext.Provider value={state.current}>{children}</RoomContext.Provider>
     );
 
-    const { result, rerender } = renderHook(() => useSharedState<number>('counter', 0), { wrapper });
+    const { result, rerender } = renderHook(() => useSharedState<number>('counter', 0), {
+      wrapper,
+    });
 
     state.current = { ...state.current, peerId: 'peer-1' };
     rerender();
@@ -139,9 +147,12 @@ describe('useSharedState', () => {
     );
 
     try {
-      const { rerender } = renderHook(() => useSharedState<number, { seen: number }>('counter', 0, strategy), {
-        wrapper,
-      });
+      const { rerender } = renderHook(
+        () => useSharedState<number, { seen: number }>('counter', 0, strategy),
+        {
+          wrapper,
+        }
+      );
 
       state.current = { ...state.current, peers: ['peer-1', 'peer-2'] };
       rerender();
@@ -150,12 +161,12 @@ describe('useSharedState', () => {
         (c) =>
           c[0]?.data &&
           typeof c[0].data === 'object' &&
-          (c[0].data as Record<string, unknown>).type === 'peers-changed',
+          (c[0].data as Record<string, unknown>).type === 'peers-changed'
       );
       expect(peerChangedCalls).toHaveLength(1);
 
       const renderWarning = errorSpy.mock.calls.some((args) =>
-        String(args[0] ?? '').includes('Cannot update a component while rendering'),
+        String(args[0] ?? '').includes('Cannot update a component while rendering')
       );
       expect(renderWarning).toBe(false);
     } finally {

@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { StrictMode, type PropsWithChildren } from 'react';
+import { type PropsWithChildren, StrictMode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { RoomContext, type RoomContextValue } from '../context/Room';
 import { createSharedStore } from '../store';
@@ -8,7 +8,10 @@ import { createSharedStore } from '../store';
 // Mock room context wrapper
 // ---------------------------------------------------------------------------
 
-function createMockRoomContext(peerId = 'peer-1', peers: string[] = ['peer-1']): {
+function createMockRoomContext(
+  peerId = 'peer-1',
+  peers: string[] = ['peer-1']
+): {
   value: RoomContextValue;
   wrapper: React.FC<PropsWithChildren>;
 } {
@@ -31,7 +34,10 @@ function createMockRoomContext(peerId = 'peer-1', peers: string[] = ['peer-1']):
   return { value, wrapper };
 }
 
-function createStrictMockRoomContext(peerId = 'peer-1', peers: string[] = ['peer-1']): {
+function createStrictMockRoomContext(
+  peerId = 'peer-1',
+  peers: string[] = ['peer-1']
+): {
   value: RoomContextValue;
   wrapper: React.FC<PropsWithChildren>;
 } {
@@ -159,7 +165,7 @@ describe('createSharedStore', () => {
         count: 0,
         increment: () => set((s) => ({ count: s.count + 1 })),
       }),
-      { partialize: (s) => ({ count: s.count }) },
+      { partialize: (s) => ({ count: s.count }) }
     );
 
     const { result } = renderHook(() => useStore(), { wrapper });
@@ -286,7 +292,7 @@ describe('createSharedStore', () => {
         countRenders += 1;
         return useStore((s) => s.count);
       },
-      { wrapper },
+      { wrapper }
     );
 
     const nameHook = renderHook(
@@ -294,7 +300,7 @@ describe('createSharedStore', () => {
         nameRenders += 1;
         return useStore((s) => s.name);
       },
-      { wrapper },
+      { wrapper }
     );
 
     const actionHook = renderHook(() => useStore((s) => s.increment), { wrapper });

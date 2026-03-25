@@ -47,9 +47,7 @@ export class SharedStateController<
 
   // Strategy handler sets.
   private readonly localWriteHandlers = new Set<(state: TState | null) => void>();
-  private readonly messageHandlers = new Set<
-    (data: JSONSerializable, senderId: string) => void
-  >();
+  private readonly messageHandlers = new Set<(data: JSONSerializable, senderId: string) => void>();
   private readonly peersChangedHandlers = new Set<(peers: string[]) => void>();
 
   // External subscribers (useSyncExternalStore / store API).
@@ -63,7 +61,7 @@ export class SharedStateController<
     key: string,
     initialState: TState | null,
     strategy: MergeStrategy<TState, TMeta>,
-    room: RoomHandle,
+    room: RoomHandle
   ) {
     this.key = key;
     this.state = initialState;
@@ -84,7 +82,10 @@ export class SharedStateController<
   getMeta = (): TMeta => this.meta;
 
   setState = (next: SetStateAction<TState | null>): void => {
-    const resolved = typeof next === 'function' ? (next as (prev: TState | null) => TState | null)(this.state) : next;
+    const resolved =
+      typeof next === 'function'
+        ? (next as (prev: TState | null) => TState | null)(this.state)
+        : next;
     for (const handler of this.localWriteHandlers) {
       handler(resolved);
     }
@@ -151,7 +152,6 @@ export class SharedStateController<
     // Arrow methods on `this` close over the instance, but the peerId
     // getter on StrategyContext must be a plain property accessor — capture
     // `this` so the object-literal getter can reach it.
-    // biome-ignore lint/correctness/noUnusedVariables: captured by getter closure
     const self = this;
 
     const ctx: StrategyContext<TState, TMeta> = {

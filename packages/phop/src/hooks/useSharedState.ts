@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
 import {
   createLamportStrategy,
   type LamportMeta,
@@ -53,6 +60,17 @@ export function useSharedState<
   strategy?: MergeStrategy<TState, TMeta>
 ): [state: TState | null, setState: (next: SetStateAction<TState | null>) => void] {
   const room = useRoom();
+  const roomHandle = useMemo(
+    () => ({
+      peerId: room.peerId,
+      peers: room.peers,
+      broadcast: room.broadcast,
+      sendToPeer: room.sendToPeer,
+      onMessage: room.onMessage,
+      onPeerConnected: room.onPeerConnected,
+    }),
+    [room]
+  );
   const peerIdRef = useRef(room.peerId);
   peerIdRef.current = room.peerId;
 
@@ -78,7 +96,12 @@ export function useSharedState<
     prevStrategyRef.current !== effectiveStrategy
   ) {
     controllerRef.current?.destroy();
-    controllerRef.current = new SharedStateController(key, initialState, effectiveStrategy, room);
+    controllerRef.current = new SharedStateController(
+      key,
+      initialState,
+      effectiveStrategy,
+      roomHandle
+    );
     prevKeyRef.current = key;
     prevStrategyRef.current = effectiveStrategy;
   }
@@ -87,8 +110,8 @@ export function useSharedState<
 
   // Keep controller room bindings in an effect to avoid render-phase side effects.
   useLayoutEffect(() => {
-    controller.syncRoom(room);
-  }, [controller, room.peerId, room.peers, room.broadcast, room.sendToPeer, room.onMessage, room.onPeerConnected]);
+    controller.syncRoom(roomHandle);
+  }, [controller, roomHandle]);
 
   // Destroy controller on unmount.
   useEffect(() => {
@@ -98,14 +121,15 @@ export function useSharedState<
     };
   }, []);
 
-  const state = useSyncExternalStore(controller.subscribe, controller.getState, controller.getState);
-
-  const setState = useCallback(
-    (next: SetStateAction<TState | null>): void => {
-      controllerRef.current?.setState(next);
-    },
-    [],
+  const state = useSyncExternalStore(
+    controller.subscribe,
+    controller.getState,
+    controller.getState
   );
+
+  const setState = useCallback((next: SetStateAction<TState | null>): void => {
+    controllerRef.current?.setState(next);
+  }, []);
 
   return [state, setState];
 }

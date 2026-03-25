@@ -1,16 +1,23 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createLamportStrategy, type LamportMeta } from '../core/merge-strategies/lamport';
 import type { MergeStrategy } from '../core/merge-strategies/types';
-import { SharedStateController, type RoomHandle } from '../core/SharedStateController';
+import { type RoomHandle, SharedStateController } from '../core/SharedStateController';
 import type { JSONSerializable } from '../types';
 
 // ---------------------------------------------------------------------------
 // Mock room
 // ---------------------------------------------------------------------------
 
-type MessageCallback = (msg: { senderId: string; data: JSONSerializable; timestamp: number }) => void;
+type MessageCallback = (msg: {
+  senderId: string;
+  data: JSONSerializable;
+  timestamp: number;
+}) => void;
 
-function createMockRoom(peerId = 'peer-1', peers: string[] = ['peer-1']): {
+function createMockRoom(
+  peerId = 'peer-1',
+  peers: string[] = ['peer-1']
+): {
   room: RoomHandle;
   simulateMessage: (senderId: string, data: JSONSerializable) => void;
   simulatePeerConnected: (remotePeerId: string) => void;
@@ -26,11 +33,15 @@ function createMockRoom(peerId = 'peer-1', peers: string[] = ['peer-1']): {
     onMessage: (handler) => {
       const cb = handler as MessageCallback;
       messageHandlers.add(cb);
-      return () => { messageHandlers.delete(cb); };
+      return () => {
+        messageHandlers.delete(cb);
+      };
     },
     onPeerConnected: (handler) => {
       peerConnectedHandlers.add(handler);
-      return () => { peerConnectedHandlers.delete(handler); };
+      return () => {
+        peerConnectedHandlers.delete(handler);
+      };
     },
   };
 
@@ -56,7 +67,7 @@ function createMockRoom(peerId = 'peer-1', peers: string[] = ['peer-1']): {
 function createTestController(
   key = 'test-key',
   initialState: JSONSerializable | null = null,
-  peerId = 'peer-1',
+  peerId = 'peer-1'
 ) {
   const mock = createMockRoom(peerId);
   const strategy = createLamportStrategy(() => mock.room.peerId);
@@ -115,7 +126,7 @@ describe('SharedStateController', () => {
       expect.objectContaining({
         senderId: 'peer-1',
         data: expect.objectContaining({ key: 'k', state: 99 }),
-      }),
+      })
     );
   });
 
@@ -143,7 +154,11 @@ describe('SharedStateController', () => {
     const listener = vi.fn();
     controller.subscribe(listener);
 
-    simulateMessage('peer-2', { key: 'wrong', state: 99, meta: { clock: 5, tiebreaker: 'peer-2' } });
+    simulateMessage('peer-2', {
+      key: 'wrong',
+      state: 99,
+      meta: { clock: 5, tiebreaker: 'peer-2' },
+    });
 
     expect(listener).not.toHaveBeenCalled();
     expect(controller.getState()).toBe(0);
@@ -186,7 +201,10 @@ describe('SharedStateController', () => {
           receivedData = data;
         });
         const unsubWrite = ctx.onLocalWrite(() => {});
-        return () => { unsub(); unsubWrite(); };
+        return () => {
+          unsub();
+          unsubWrite();
+        };
       },
     };
 
@@ -212,7 +230,10 @@ describe('SharedStateController', () => {
       connect(ctx) {
         const unsub = ctx.onPeersChanged(peerChangeSpy);
         const unsubWrite = ctx.onLocalWrite(() => {});
-        return () => { unsub(); unsubWrite(); };
+        return () => {
+          unsub();
+          unsubWrite();
+        };
       },
     };
 
@@ -235,7 +256,7 @@ describe('SharedStateController', () => {
       'peer-2',
       expect.objectContaining({
         data: expect.objectContaining({ state: 'hello', key: 'k' }),
-      }),
+      })
     );
   });
 

@@ -1,8 +1,8 @@
 import {
-  createSharedStore,
   createConsensusStrategy,
   createLamportStrategy,
   createLastWriteWinsStrategy,
+  createSharedStore,
   type JSONSerializable,
   type MergeStrategy,
   useRoom,
