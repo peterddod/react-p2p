@@ -1,6 +1,7 @@
 # phop
 
 Peer-to-peer state management for React using WebRTC. Share and sync state across browsers in real time — no backend required.
+This README documents usage only; it does not affect runtime behavior.
 
 > ⚠️ **Early Development** — P2P synchronization features are under active development
 

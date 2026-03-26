@@ -1,6 +1,7 @@
 # phop example
 
 A demo app showing two peers syncing shared state in real time using [phop](../phop).
+This README describes the demo setup and does not change application behavior.
 
 The app renders two iframes side by side, each acting as an independent peer. Both connect to the same room via a local signaling server and sync a shared counter over a WebRTC data channel.
 

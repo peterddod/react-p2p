@@ -1,6 +1,7 @@
 # integration-tests
 
 End-to-end integration tests for `@peterddod/phop` using Playwright. Tests run real WebRTC connections between multiple browser peers against a real signalling server — no mocks.
+This README documents the test harness and does not affect test runtime logic.
 
 ## Why integration tests
 

@@ -1,6 +1,7 @@
 # phop signalling server
 
 A lightweight WebSocket signalling server that coordinates the initial WebRTC handshake between phop peers. Once browsers are connected, all state sync flows directly between them — the signalling server is only needed to get the connection started.
+This README is documentation-only and has no effect on server runtime behavior.
 
 ## Self-hosting with Docker
 
