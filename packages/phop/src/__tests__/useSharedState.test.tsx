@@ -36,12 +36,9 @@ describe('useSharedState', () => {
 
   it('uses latest peerId in Lamport metadata after initial empty peerId', () => {
     const { value, wrapper: BaseWrapper } = createMockRoomContext('', ['peer-1']);
-    const wrapper: React.FC<PropsWithChildren> = ({ children }) => (
-      <BaseWrapper>{children}</BaseWrapper>
-    );
 
     const { result, rerender } = renderHook(() => useSharedState<number>('counter', 0), {
-      wrapper,
+      wrapper: BaseWrapper,
     });
 
     value.peerId = 'peer-1';

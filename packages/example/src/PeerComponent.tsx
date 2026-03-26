@@ -125,7 +125,7 @@ function PeerContent({
             <button
               type="button"
               className="counter-button"
-              onClick={() => setCount((count ?? 0) - 1)}
+              onClick={() => setCount((prev) => (prev ?? 0) - 1)}
               disabled={disabled}
             >
               −
@@ -133,7 +133,7 @@ function PeerContent({
             <button
               type="button"
               className="counter-button"
-              onClick={() => setCount((count ?? 0) + 1)}
+              onClick={() => setCount((prev) => (prev ?? 0) + 1)}
               disabled={disabled}
             >
               +
