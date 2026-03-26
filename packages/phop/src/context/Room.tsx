@@ -17,6 +17,11 @@ export interface RoomContextValue {
     handler: MessageHandler<TData>
   ) => () => void;
   onPeerConnected: (handler: (remotePeerId: string) => void) => () => void;
+  /**
+   * Internal registry used by createSharedStore so every hook call in a Room
+   * shares one store instance per key.
+   */
+  __internalStoreRegistry?: Map<string, unknown>;
 }
 
 export const RoomContext = createContext<RoomContextValue | null>(null);
@@ -35,6 +40,12 @@ export function Room({ children, signallingServerUrl, roomId }: RoomProps) {
   const connectionsRef = useRef<Map<string, PeerConnection>>(new Map());
   const handlersRef = useRef<Set<MessageHandler>>(new Set());
   const peerConnectedHandlersRef = useRef<Set<(remotePeerId: string) => void>>(new Set());
+  const internalStoreRegistriesRef = useRef<Map<string, Map<string, unknown>>>(new Map());
+  let internalStoreRegistry = internalStoreRegistriesRef.current.get(roomId);
+  if (!internalStoreRegistry) {
+    internalStoreRegistry = new Map<string, unknown>();
+    internalStoreRegistriesRef.current.set(roomId, internalStoreRegistry);
+  }
 
   useEffect(
     function initializeSignalingClient() {
@@ -199,6 +210,7 @@ export function Room({ children, signallingServerUrl, roomId }: RoomProps) {
     sendToPeer,
     onMessage,
     onPeerConnected,
+    __internalStoreRegistry: internalStoreRegistry,
   };
 
   return <RoomContext.Provider value={contextValue}>{children}</RoomContext.Provider>;

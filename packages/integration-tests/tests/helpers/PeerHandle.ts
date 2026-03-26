@@ -98,6 +98,37 @@ export class PeerHandle {
     return this.page.evaluate((k: string) => window.__phop.getSharedState(k), key);
   }
 
+  incrementSharedState(key: string, delta = 1): Promise<void> {
+    return this.page.evaluate(
+      ([k, d]: [string, number]) => window.__phop.incrementSharedState(k, d),
+      [key, delta] as [string, number]
+    );
+  }
+
+  enableLabelProbe(): Promise<void> {
+    return this.page.evaluate(() => window.__phop.enableLabelProbe());
+  }
+
+  setLabelText(value: string): Promise<void> {
+    return this.page.evaluate((v: string) => window.__phop.setLabelText(v), value);
+  }
+
+  typeLabelChar(char: string): Promise<void> {
+    return this.page.evaluate((c: string) => window.__phop.typeLabelChar(c), char);
+  }
+
+  getLabelText(): Promise<string> {
+    return this.page.evaluate(() => window.__phop.getLabelText());
+  }
+
+  async waitForLabelText(value: string, options?: { timeout?: number }): Promise<void> {
+    await this.page.waitForFunction(
+      (expected: string) => window.__phop.getLabelText() === expected,
+      value,
+      { timeout: options?.timeout ?? DEFAULT_TIMEOUT }
+    );
+  }
+
   /**
    * Polls until the shared state for `key` satisfies `predicate`.
    */

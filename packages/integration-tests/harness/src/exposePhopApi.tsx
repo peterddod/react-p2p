@@ -2,6 +2,7 @@ import {
   createConsensusStrategy,
   createLamportStrategy,
   createLastWriteWinsStrategy,
+  createSharedStore,
   type JSONSerializable,
   type MergeStrategy,
   useRoom,
@@ -10,11 +11,33 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type SerializedStrategy = 'lamport' | 'lastWriteWins' | 'consensus';
+type SharedSetter = (
+  value: JSONSerializable | null | ((prev: JSONSerializable | null) => JSONSerializable | null)
+) => void;
 
 interface SliceRegistration {
   key: string;
   strategy: SerializedStrategy;
 }
+
+interface LabelState {
+  label: string;
+  color: string;
+  setLabel: (label: string) => void;
+  cycleColor: () => void;
+}
+
+const LABEL_COLORS = ['#667eea', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+const useLabelStore = createSharedStore<LabelState>('label', (set, get) => ({
+  label: '',
+  color: LABEL_COLORS[0],
+  setLabel: (label: string) => set({ label }),
+  cycleColor: () => {
+    const idx = LABEL_COLORS.indexOf(get().color);
+    set({ color: LABEL_COLORS[(idx + 1) % LABEL_COLORS.length] });
+  },
+}));
 
 interface PhopApi {
   peerId: string;
@@ -30,7 +53,12 @@ interface PhopApi {
   onPeerConnected: (handler: (remotePeerId: string) => void) => () => void;
   registerSharedState: (key: string, strategy?: SerializedStrategy) => Promise<void>;
   setSharedState: (key: string, value: JSONSerializable) => void;
+  incrementSharedState: (key: string, delta?: number) => void;
   getSharedState: (key: string) => JSONSerializable | null;
+  enableLabelProbe: () => Promise<void>;
+  setLabelText: (value: string) => void;
+  typeLabelChar: (char: string) => void;
+  getLabelText: () => string;
   __msgQueue: Array<{ senderId: string; data: JSONSerializable; timestamp: number }>;
   __ack: (key: string) => void;
   __pendingAcks: Map<string, Array<() => void>>;
@@ -61,7 +89,7 @@ interface SharedStateSliceProps {
   stateKey: string;
   strategy: SerializedStrategy;
   stateMapRef: React.RefObject<Map<string, JSONSerializable | null>>;
-  settersRef: React.RefObject<Map<string, (value: JSONSerializable | null) => void>>;
+  settersRef: React.RefObject<Map<string, SharedSetter>>;
   onAck: (key: string) => void;
 }
 
@@ -82,8 +110,8 @@ function SharedStateSlice({
 
   stateMapRef.current.set(stateKey, value);
 
-  const setterRef = useRef((next: JSONSerializable | null) => setValue(next));
-  setterRef.current = (next: JSONSerializable | null) => setValue(next);
+  const setterRef = useRef<SharedSetter>((next) => setValue(next));
+  setterRef.current = (next) => setValue(next);
   settersRef.current.set(stateKey, (next) => setterRef.current(next));
 
   useEffect(() => {
@@ -96,19 +124,56 @@ function SharedStateSlice({
 interface ExposePhopApiInnerProps {
   registeredSlices: SliceRegistration[];
   onRegister: (key: string, strategy: SerializedStrategy) => void;
+  labelProbeEnabled: boolean;
+  onEnableLabelProbe: () => void;
 }
 
-function ExposePhopApiInner({ registeredSlices, onRegister }: ExposePhopApiInnerProps) {
+interface LabelProbeProps {
+  stateRef: React.RefObject<{ label: string; color: string }>;
+  actionsRef: React.RefObject<{ setLabel: (value: string) => void; cycleColor: () => void } | null>;
+  onReady: () => void;
+}
+
+function LabelProbe({ stateRef, actionsRef, onReady }: LabelProbeProps) {
+  // Intentionally mirrors the example usage: multiple selector subscriptions.
+  const label = useLabelStore((s) => s.label);
+  const color = useLabelStore((s) => s.color);
+  const setLabel = useLabelStore((s) => s.setLabel);
+  const cycleColor = useLabelStore((s) => s.cycleColor);
+
+  stateRef.current = { label, color };
+  actionsRef.current = { setLabel, cycleColor };
+
+  useEffect(() => {
+    onReady();
+  }, [onReady]);
+
+  return null;
+}
+
+function ExposePhopApiInner({
+  registeredSlices,
+  onRegister,
+  labelProbeEnabled,
+  onEnableLabelProbe,
+}: ExposePhopApiInnerProps) {
   const { peerId, peers, isConnected, broadcast, sendToPeer, onMessage, onPeerConnected } =
     useRoom();
 
   const stateMapRef = useRef<Map<string, JSONSerializable | null>>(new Map());
-  const settersRef = useRef<Map<string, (value: JSONSerializable | null) => void>>(new Map());
+  const settersRef = useRef<Map<string, SharedSetter>>(new Map());
   // Stable queue ref — never reset across re-renders so messages are never dropped.
   const msgQueueRef = useRef<
     Array<{ senderId: string; data: JSONSerializable; timestamp: number }>
   >([]);
   const pendingAcksRef = useRef<Map<string, Array<() => void>>>(new Map());
+  const labelProbeStateRef = useRef<{ label: string; color: string }>({ label: '', color: '' });
+  const labelProbeActionsRef = useRef<{
+    setLabel: (value: string) => void;
+    cycleColor: () => void;
+  } | null>(null);
+  const labelProbeReadyRef = useRef(false);
+  const pendingLabelProbeAcksRef = useRef<Array<() => void>>([]);
   // Tracks peers with an open data channel (incremented by onPeerConnected).
   const connectedPeerCountRef = useRef(0);
 
@@ -119,6 +184,15 @@ function ExposePhopApiInner({ registeredSlices, onRegister }: ExposePhopApiInner
         cb();
       }
       pendingAcksRef.current.delete(key);
+    }
+  }, []);
+
+  const handleLabelProbeReady = useCallback(() => {
+    labelProbeReadyRef.current = true;
+    const callbacks = pendingLabelProbeAcksRef.current;
+    pendingLabelProbeAcksRef.current = [];
+    for (const cb of callbacks) {
+      cb();
     }
   }, []);
 
@@ -180,8 +254,53 @@ function ExposePhopApiInner({ registeredSlices, onRegister }: ExposePhopApiInner
         setter(value);
       },
 
+      incrementSharedState: (key, delta = 1) => {
+        const setter = settersRef.current.get(key);
+        if (!setter) {
+          throw new Error(
+            `No shared state registered for key "${key}". Call registerSharedState first.`
+          );
+        }
+        setter((prev) => (((prev as number | null) ?? 0) + delta) as JSONSerializable);
+      },
+
       getSharedState: (key) => {
         return stateMapRef.current.get(key) ?? null;
+      },
+
+      enableLabelProbe: () => {
+        return new Promise<void>((resolve) => {
+          if (labelProbeReadyRef.current) {
+            resolve();
+            return;
+          }
+          pendingLabelProbeAcksRef.current.push(resolve);
+          onEnableLabelProbe();
+        });
+      },
+
+      setLabelText: (value) => {
+        const actions = labelProbeActionsRef.current;
+        if (!actions) {
+          throw new Error('Label probe is not ready. Call enableLabelProbe first.');
+        }
+        actions.setLabel(value);
+      },
+
+      typeLabelChar: (char) => {
+        if (char.length !== 1) {
+          throw new Error(`typeLabelChar expects a single character, received "${char}".`);
+        }
+        const actions = labelProbeActionsRef.current;
+        if (!actions) {
+          throw new Error('Label probe is not ready. Call enableLabelProbe first.');
+        }
+        const next = `${labelProbeStateRef.current.label}${char}`;
+        actions.setLabel(next);
+      },
+
+      getLabelText: () => {
+        return labelProbeStateRef.current.label;
       },
 
       __msgQueue: msgQueueRef.current,
@@ -219,6 +338,7 @@ function ExposePhopApiInner({ registeredSlices, onRegister }: ExposePhopApiInner
     registeredSlices,
     onRegister,
     handleAck,
+    onEnableLabelProbe,
   ]);
 
   return (
@@ -233,12 +353,20 @@ function ExposePhopApiInner({ registeredSlices, onRegister }: ExposePhopApiInner
           onAck={handleAck}
         />
       ))}
+      {labelProbeEnabled && (
+        <LabelProbe
+          stateRef={labelProbeStateRef}
+          actionsRef={labelProbeActionsRef}
+          onReady={handleLabelProbeReady}
+        />
+      )}
     </>
   );
 }
 
 export function ExposePhopApi() {
   const [registeredSlices, setRegisteredSlices] = useState<SliceRegistration[]>([]);
+  const [labelProbeEnabled, setLabelProbeEnabled] = useState(false);
 
   const handleRegister = (key: string, strategy: SerializedStrategy) => {
     setRegisteredSlices((prev) => {
@@ -247,5 +375,16 @@ export function ExposePhopApi() {
     });
   };
 
-  return <ExposePhopApiInner registeredSlices={registeredSlices} onRegister={handleRegister} />;
+  const handleEnableLabelProbe = () => {
+    setLabelProbeEnabled(true);
+  };
+
+  return (
+    <ExposePhopApiInner
+      registeredSlices={registeredSlices}
+      onRegister={handleRegister}
+      labelProbeEnabled={labelProbeEnabled}
+      onEnableLabelProbe={handleEnableLabelProbe}
+    />
+  );
 }

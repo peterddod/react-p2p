@@ -1,6 +1,12 @@
 import './App.css';
+import { useRef } from 'react';
 
 function App() {
+  // Keep one room ID per top-level page load so both iframes share
+  // each other, but do not collide with other open tabs/sessions.
+  const roomIdRef = useRef(crypto.randomUUID());
+  const roomId = encodeURIComponent(roomIdRef.current);
+
   return (
     <div className="app">
       <div className="header">
@@ -11,12 +17,20 @@ function App() {
       <div className="iframes-container">
         <div className="iframe-wrapper">
           <h3>Peer 1</h3>
-          <iframe src="/peer.html?peer=1" title="Peer 1" className="peer-iframe" />
+          <iframe
+            src={`/peer.html?peer=1&roomId=${roomId}`}
+            title="Peer 1"
+            className="peer-iframe"
+          />
         </div>
 
         <div className="iframe-wrapper">
           <h3>Peer 2</h3>
-          <iframe src="/peer.html?peer=2" title="Peer 2" className="peer-iframe" />
+          <iframe
+            src={`/peer.html?peer=2&roomId=${roomId}`}
+            title="Peer 2"
+            className="peer-iframe"
+          />
         </div>
       </div>
 

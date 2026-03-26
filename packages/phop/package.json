@@ -38,15 +38,20 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --sourcemap --clean",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --sourcemap --watch"
+    "dev": "tsup src/index.ts --format cjs,esm --dts --sourcemap --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "sideEffects": false,
   "peerDependencies": {
     "react": ">=18"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.1.9",
+    "jsdom": "^29.0.1",
     "tsup": "^8.5.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.1"
   }
 }

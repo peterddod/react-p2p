@@ -10,5 +10,7 @@ export {
   type MergeStrategy,
   type StrategyContext,
 } from './core/merge-strategies';
+export { type RoomHandle, SharedStateController } from './core/SharedStateController';
 export { useRoom, useSharedState } from './hooks';
+export { createSharedStore } from './store';
 export type { JSONSerializable, Message, MessageHandler } from './types';
