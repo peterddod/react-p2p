@@ -35,35 +35,23 @@ describe('useSharedState', () => {
   });
 
   it('uses latest peerId in Lamport metadata after initial empty peerId', () => {
-    const state = {
-      current: {
-        roomId: 'test-room',
-        peerId: '',
-        peers: ['peer-1'],
-        isConnected: true,
-        broadcast: vi.fn(),
-        sendToPeer: vi.fn(),
-        onMessage: vi.fn(() => () => {}),
-        onPeerConnected: vi.fn(() => () => {}),
-      } as RoomContextValue,
-    };
-
+    const { value, wrapper: BaseWrapper } = createMockRoomContext('', ['peer-1']);
     const wrapper: React.FC<PropsWithChildren> = ({ children }) => (
-      <RoomContext.Provider value={state.current}>{children}</RoomContext.Provider>
+      <BaseWrapper>{children}</BaseWrapper>
     );
 
     const { result, rerender } = renderHook(() => useSharedState<number>('counter', 0), {
       wrapper,
     });
 
-    state.current = { ...state.current, peerId: 'peer-1' };
+    value.peerId = 'peer-1';
     rerender();
 
     act(() => {
       result.current[1](1);
     });
 
-    const broadcastCall = (state.current.broadcast as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const broadcastCall = (value.broadcast as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(broadcastCall.data.meta).toEqual(expect.objectContaining({ tiebreaker: 'peer-1' }));
   });
 

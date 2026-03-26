@@ -1,5 +1,5 @@
 import { createSharedStore, Room, useRoom, useSharedState } from '@peterddod/phop';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import './Peer.css';
 
 // ---------------------------------------------------------------------------
@@ -160,9 +160,13 @@ function PeerContent({
 }
 
 export default function PeerComponent() {
-  const params = new URLSearchParams(window.location.search);
-  const peerName = params.get('peer') || 'Unknown';
-  const roomId = params.get('roomId') || 'demo-room';
+  const { peerName, roomId } = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      peerName: params.get('peer') || 'Unknown',
+      roomId: params.get('roomId') || 'demo-room',
+    };
+  }, []);
 
   const [inputUrl, setInputUrl] = useState(DEFAULT_SERVER_URL);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
