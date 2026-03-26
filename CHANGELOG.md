@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/peterddod/phop/compare/v1.4.0...v1.4.1) (2026-03-26)
+
+
+### Bug Fixes
+
+* **ci:** publish from semantic-release tag ([0d4122e](https://github.com/peterddod/phop/commit/0d4122e56f35217e80f41803dbb27f16bd6f52f3))
+
 # [1.4.0](https://github.com/peterddod/phop/compare/v1.3.0...v1.4.0) (2026-03-26)
 
 
