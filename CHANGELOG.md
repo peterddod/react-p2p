@@ -1,3 +1,20 @@
+# [1.4.0](https://github.com/peterddod/phop/compare/v1.3.0...v1.4.0) (2026-03-26)
+
+
+### Bug Fixes
+
+* **example:** use functional updaters in counter controls ([78b29c8](https://github.com/peterddod/phop/commit/78b29c89b1980e36f39408c16bfd6fff79d9876b))
+* memoize peer query params and align peerId test setup ([05c3c01](https://github.com/peterddod/phop/commit/05c3c0168ca3a248218c63aeec921250036a1cb4))
+* **phop:** address review nits for docs, accessibility, and test helpers ([22229f6](https://github.com/peterddod/phop/commit/22229f6076f3fc4737c43db5fc690c5eaea494de))
+* **phop:** keep shared-state hooks render-pure and selector-aware ([e197bcf](https://github.com/peterddod/phop/commit/e197bcfd5d57cc9f036d26a4299e006faa7fb748))
+* **phop:** satisfy hook rules and exhaustive deps in shared state ([46b206c](https://github.com/peterddod/phop/commit/46b206c52f219f3aaa22a94a23ed641685e5592e))
+
+
+### Features
+
+* **example:** showcase shared store label and isolate demo rooms ([34d4b92](https://github.com/peterddod/phop/commit/34d4b9233b4e06b1621f009a3b316851688bbac8))
+* **phop:** add shared store API with synced controller core ([07ad0c0](https://github.com/peterddod/phop/commit/07ad0c047d4282df37397210c5008719ecc38acb))
+
 # [1.3.0](https://github.com/peterddod/phop/compare/v1.2.0...v1.3.0) (2026-03-01)
 
 
